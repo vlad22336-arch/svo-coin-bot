@@ -7,6 +7,7 @@ import * as Ach from './achievements.js';
 import * as Casino from './casino.js';
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
+const WEBAPP_URL = process.env.WEBAPP_URL;
 const ADMIN_IDS = (process.env.ADMIN_IDS || '').split(',').map(Number).filter(Boolean);
 
 if (!BOT_TOKEN) {
@@ -17,6 +18,7 @@ if (!BOT_TOKEN) {
 const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 
 console.log('🤖 @SVOcoinbot запущен...');
+console.log('🌐 WEBAPP_URL:', WEBAPP_URL || '(не задан)');
 
 /* ============ Хелперы ============ */
 function getUser(tgUser) {
@@ -52,17 +54,28 @@ bot.onText(/^\/start/, (msg) => {
   const user = getUser(msg.from);
   sync(user);
 
+  /* Кнопка Mini App */
+  const keyboard = WEBAPP_URL
+    ? {
+        reply_markup: {
+          inline_keyboard: [[
+            { text: '🏙 Открыть Tycoon', web_app: { url: WEBAPP_URL } }
+          ]]
+        }
+      }
+    : {};
+
   bot.sendMessage(msg.chat.id,
     `👋 Привет, <b>${msg.from.first_name}</b>!\n\n` +
     `🪙 Добро пожаловать в <b>SVOcoin</b>!\n\n` +
-    `<b>Команды:</b>\n` +
-    `💰 /баланс — баланс\n` +
-    `🛒 /магазин — бизнесы\n` +
-    `🎰 /рулетка 100 — казино\n` +
-    `🎁 /бонус — ежедневка\n` +
-    `🏆 /достижения\n` +
-    `📖 /помощь`,
-    { parse_mode: 'HTML' }
+    `<b>Что внутри:</b>\n` +
+    `💰 Пассивный доход\n` +
+    `🏢 20 бизнесов\n` +
+    `🎰 Казино\n` +
+    `🎁 Ежедневки\n` +
+    `🏆 Достижения\n\n` +
+    `👇 Открой Mini App`,
+    { parse_mode: 'HTML', ...keyboard }
   );
 });
 
@@ -189,9 +202,7 @@ bot.onText(/^\/(продать|sell)\s+(\w+)$/i, (msg, match) => {
   bot.sendMessage(msg.chat.id, `💸 ${r.msg}\n💰 ${G.fmt(user.money)}`);
 });
 
-/* =========================================================
-   🎰 /рулетка [ставка]
-   ========================================================= */
+/* ============ 🎰 /рулетка ============ */
 bot.onText(/^\/(рулетка|слоты|slot|spin)(?:\s+(\d+))?$/i, async (msg, match) => {
   const user = getUser(msg.from);
   G.applyOffline(user);
@@ -199,7 +210,6 @@ bot.onText(/^\/(рулетка|слоты|slot|spin)(?:\s+(\d+))?$/i, async (msg
 
   const bet = Number(match[2] || 0);
 
-  /* Нет ставки → показываем справку */
   if (!bet) {
     return bot.sendMessage(msg.chat.id,
       `🎰 <b>Однорукий бандит</b>\n\n` +
@@ -218,7 +228,6 @@ bot.onText(/^\/(рулетка|слоты|slot|spin)(?:\s+(\d+))?$/i, async (msg
     );
   }
 
-  /* Подготовка — списываем ставку */
   const prep = Casino.prepareSpin(user, bet);
   if (!prep.ok) {
     return bot.sendMessage(msg.chat.id, `❌ ${prep.msg}`);
@@ -226,26 +235,22 @@ bot.onText(/^\/(рулетка|слоты|slot|spin)(?:\s+(\d+))?$/i, async (msg
 
   sync(user);
 
-  /* Запускаем Telegram Dice 🎰 */
   try {
     const diceMsg = await bot.sendDice(msg.chat.id, {
       emoji: '🎰',
       reply_to_message_id: msg.message_id,
     });
 
-    /* Ждём завершения анимации (4.2 сек) */
     await new Promise(r => setTimeout(r, 4200));
 
     const diceValue = diceMsg.dice.value;
 
-    /* Перечитываем юзера (мог измениться) */
     const freshUser = getUser(msg.from);
     const result = Casino.handleDiceResult(freshUser, prep.bet, diceValue);
 
     const unlocked = Ach.checkAchievements(freshUser);
     sync(freshUser);
 
-    /* Формируем сообщение */
     let text = `🎰 <b>Однорукий бандит</b>\n\n`;
     text += `🎯 Ставка: <b>${G.fmt(prep.bet)}</b>\n`;
     text += `🎲 Выпало: <b>${Casino.renderReels(result.reels)}</b>\n\n`;
@@ -271,7 +276,6 @@ bot.onText(/^\/(рулетка|слоты|slot|spin)(?:\s+(\d+))?$/i, async (msg
 
   } catch (e) {
     console.error('Casino error:', e);
-    /* Возвращаем ставку при ошибке */
     const freshUser = getUser(msg.from);
     freshUser.money += prep.bet;
     sync(freshUser);
