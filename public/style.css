@@ -1,17 +1,32 @@
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+/* =========================================================
+   SVOcoin Mini App — стили
+   ========================================================= */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
 
 :root {
-  --bg: #0f1115;
-  --card: #1c2029;
-  --card-2: #232833;
+  --bg: #0a0c12;
+  --bg-2: #10131a;
+  --card: #14181f;
+  --card-2: #1b2028;
+  --card-3: #232a34;
+  --line: rgba(255, 255, 255, 0.06);
+  --text: #eef1f7;
+  --text-soft: #b6bdcb;
+  --muted: #7a8293;
   --accent: #6d5efc;
   --accent-2: #8a7dff;
-  --green: #3ddc84;
-  --gold: #ffd54a;
-  --red: #ff5c5c;
-  --text: #eef1f7;
-  --muted: #8b93a7;
-  --radius: 16px;
+  --green: #22c55e;
+  --gold: #ffb547;
+  --red: #ef4444;
+  --radius: 18px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
 }
 
 body {
@@ -20,97 +35,243 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
+/* ══════════════════════════════════════
+   ЭКРАНЫ — показываем только активный
+══════════════════════════════════════ */
 #app {
   max-width: 520px;
   margin: 0 auto;
-  padding: 14px;
-  padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  padding: 16px 14px calc(90px + env(safe-area-inset-bottom));
+  min-height: 100vh;
 }
 
-/* ============ TOPBAR ============ */
-.topbar {
+.screen {
+  display: none;
+  animation: fadeIn 0.25s ease;
+}
+
+.screen.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ══════════════════════════════════════
+   ЭКРАН 1: ДОМ
+══════════════════════════════════════ */
+
+.home-header {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
-.stat-card {
+.balance-card,
+.income-card {
   background: var(--card);
-  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
   padding: 14px;
-  border: 1px solid rgba(255,255,255,0.04);
 }
 
-.stat-label {
-  font-size: 11px;
+.balance-label,
+.income-label {
+  font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   color: var(--muted);
-  margin-bottom: 4px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.balance-value {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--accent-2);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.income-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--green);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.balance-sub,
+.income-sub {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 6px;
   font-weight: 600;
 }
 
-.stat-value {
-  font-size: 20px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
+/* Разделы (Бизнесы, Казино, Достижения) */
+.home-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
 }
 
-.balance-card .stat-value { color: var(--accent-2); }
-.income-card .stat-value { color: var(--green); font-size: 17px; }
-.stat-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+.menu-item {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.2s;
+}
 
-/* ============ DAILY ============ */
+.menu-item:active {
+  transform: scale(0.98);
+  border-color: var(--accent);
+}
+
+.menu-item-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-sm);
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.menu-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.menu-item-title {
+  font-size: 15px;
+  font-weight: 800;
+  margin-bottom: 3px;
+}
+
+.menu-item-sub {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.menu-item-arrow {
+  font-size: 24px;
+  color: var(--muted);
+  font-weight: 300;
+  flex-shrink: 0;
+}
+
+/* Ежедневка */
 .daily-block {
-  background: linear-gradient(135deg, rgba(255, 213, 74, 0.15), rgba(255, 213, 74, 0.03));
-  border: 1px solid rgba(255, 213, 74, 0.3);
-  border-radius: var(--radius);
+  background: linear-gradient(135deg, rgba(255, 181, 71, 0.15), rgba(255, 181, 71, 0.03));
+  border: 1px solid rgba(255, 181, 71, 0.3);
+  border-radius: var(--radius-md);
   padding: 14px;
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 14px;
 }
 
-.daily-info { flex: 1; display: flex; align-items: center; gap: 12px; }
-.daily-icon { font-size: 28px; }
-.daily-title { font-size: 14px; font-weight: 700; }
-.daily-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.daily-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.daily-info {
+  flex: 1;
+}
+
+.daily-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--gold);
+}
+
+.daily-sub {
+  font-size: 12px;
+  color: var(--text-soft);
+  margin-top: 2px;
+}
 
 .btn-daily {
-  background: linear-gradient(135deg, #d97706, var(--gold));
+  background: linear-gradient(135deg, #d97706, #fbbf24);
   color: #1a1a1a;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
   padding: 10px 16px;
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
   border: none;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(255, 213, 74, 0.4);
   font-family: inherit;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(255, 181, 71, 0.4);
 }
 
-.btn-daily:active { transform: scale(0.96); }
+.btn-daily:active {
+  transform: scale(0.96);
+}
 
-/* ============ BUSINESS LIST ============ */
-.business-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+/* ══════════════════════════════════════
+   ЭКРАН 2: МАГАЗИН
+══════════════════════════════════════ */
 
-.biz {
+.screen-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 0 4px;
+}
+
+.screen-title {
+  font-size: 16px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text);
+}
+
+.screen-balance {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--accent-2);
   background: var(--card);
-  border-radius: var(--radius);
-  padding: 14px;
-  border: 1px solid rgba(255,255,255,0.04);
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+}
+
+.business-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  transition: border-color 0.2s;
+}
+
+.biz {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .biz.owned {
-  border-color: rgba(109, 94, 252, 0.25);
+  border-color: rgba(109, 94, 252, 0.3);
 }
 
 .biz.locked {
@@ -125,18 +286,30 @@ body {
 
 .biz-emoji {
   font-size: 28px;
-  width: 46px;
-  height: 46px;
+  width: 48px;
+  height: 48px;
   display: grid;
   place-items: center;
   background: var(--card-2);
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
 
-.biz-info { flex: 1; min-width: 0; }
-.biz-name { font-size: 15px; font-weight: 700; }
-.biz-sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.biz-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.biz-name {
+  font-size: 15px;
+  font-weight: 800;
+  margin-bottom: 3px;
+}
+
+.biz-sub {
+  font-size: 12px;
+  color: var(--muted);
+}
 
 .biz-badge {
   font-size: 11px;
@@ -148,10 +321,16 @@ body {
   white-space: nowrap;
 }
 
-.biz-badge.max { background: rgba(61, 220, 132, 0.15); color: var(--green); }
-.biz-badge.locked-badge { background: rgba(255,255,255,0.05); color: var(--muted); }
+.biz-badge.max {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--green);
+}
 
-/* Прогресс */
+.biz-badge.locked-badge {
+  background: rgba(122, 130, 147, 0.15);
+  color: var(--muted);
+}
+
 .biz-progress {
   height: 6px;
   background: var(--card-2);
@@ -170,7 +349,6 @@ body {
   background: linear-gradient(90deg, #16a34a, var(--green));
 }
 
-/* Стата бизнеса */
 .biz-stats {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -190,30 +368,31 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 3px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .biz-stat-value {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
 
-/* Кнопки */
 .biz-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
 
-.biz-actions.single { grid-template-columns: 1fr; }
+.biz-actions.single {
+  grid-template-columns: 1fr;
+}
 
 .btn {
   font-family: inherit;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
   border: none;
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
   padding: 12px 10px;
   cursor: pointer;
   color: #fff;
@@ -242,111 +421,462 @@ body {
   cursor: not-allowed;
 }
 
-/* ============ SECTIONS ============ */
-.section { margin-top: 20px; }
+/* ══════════════════════════════════════
+   ЭКРАН 3: СЕМЬИ (ПРОФИЛЬ)
+══════════════════════════════════════ */
 
-.section-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.section-title {
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--muted);
-  font-weight: 700;
-}
-
-.section-count {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--muted);
-  background: var(--card);
-  padding: 4px 10px;
-  border-radius: 20px;
-}
-
-/* Достижения */
-.achievements-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-}
-
-.ach-item {
-  aspect-ratio: 1;
-  background: var(--card);
-  border: 1px solid rgba(255,255,255,0.04);
-  border-radius: 12px;
+.profile-hero {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 4px;
-  padding: 8px 4px;
-  transition: all 0.2s;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 20px 0;
 }
 
-.ach-item.locked { filter: grayscale(1); opacity: 0.35; }
-
-.ach-item.unlocked {
-  background: linear-gradient(135deg, rgba(255, 213, 74, 0.15), rgba(255, 213, 74, 0.03));
-  border-color: rgba(255, 213, 74, 0.4);
+.profile-avatar {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  position: relative;
+  padding: 3px;
+  background: linear-gradient(135deg, #6d5efc, #ec4899, #ffd54a, #22c55e, #6d5efc);
+  background-size: 300% 300%;
+  animation: rotateBorder 6s linear infinite;
 }
 
-.ach-emoji { font-size: 24px; }
-.ach-title {
-  font-size: 9px;
-  font-weight: 700;
+@keyframes rotateBorder {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--bg);
+  display: block;
+}
+
+.profile-avatar span {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--card-2);
+  display: grid;
+  place-items: center;
+  font-size: 42px;
+  font-weight: 800;
+  color: #fff;
+  border: 3px solid var(--bg);
+}
+
+.profile-name {
+  font-size: 20px;
+  font-weight: 800;
   text-align: center;
-  color: var(--muted);
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
-.ach-item.unlocked .ach-title { color: var(--gold); }
+.profile-username {
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+}
 
-/* ============ TOAST ============ */
+/* Карточки */
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.card-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.btn-edit {
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, rgba(109, 94, 252, 0.2), rgba(138, 125, 255, 0.1));
+  color: var(--accent-2);
+  border: 1px solid rgba(109, 94, 252, 0.3);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn-edit:active { transform: scale(0.96); }
+
+.info-row {
+  display: grid;
+  grid-template-columns: 28px 90px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.info-row:last-of-type { border-bottom: none; }
+
+.info-icon {
+  font-size: 16px;
+  text-align: center;
+}
+
+.info-label {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.info-value {
+  font-size: 14px;
+  font-weight: 800;
+  text-align: right;
+}
+
+.bio-field {
+  background: var(--card-2);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--muted);
+  font-style: italic;
+  line-height: 1.5;
+  margin-top: 10px;
+  min-height: 60px;
+}
+
+/* Баланс */
+.card-balance {
+  background: linear-gradient(135deg, rgba(255, 181, 71, 0.1), rgba(255, 181, 71, 0.02));
+  border-color: rgba(255, 181, 71, 0.25);
+}
+
+.big-balance {
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  margin-top: 8px;
+}
+
+.balance-sub-label {
+  font-size: 13px;
+  color: var(--text-soft);
+  margin-top: 6px;
+  font-weight: 700;
+}
+
+/* Связать аккаунты */
+.card-link {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.08), rgba(34, 197, 94, 0.02));
+  border-color: rgba(34, 197, 94, 0.25);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.card-link:active { transform: scale(0.98); }
+
+.link-icon {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.link-info { flex: 1; }
+
+.link-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--green);
+  margin-bottom: 4px;
+}
+
+.link-sub {
+  font-size: 12px;
+  color: var(--text-soft);
+  line-height: 1.4;
+}
+
+.link-arrow {
+  font-size: 22px;
+  color: var(--muted);
+  font-weight: 300;
+}
+
+/* ══════════════════════════════════════
+   ЭКРАН 4: ДАЧА
+══════════════════════════════════════ */
+
+.empty-block {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--muted);
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-soft);
+  margin-bottom: 8px;
+}
+
+.empty-sub {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* ══════════════════════════════════════
+   НИЖНЯЯ НАВИГАЦИЯ
+══════════════════════════════════════ */
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  max-width: 520px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: var(--bg-2);
+  border-top: 1px solid var(--line);
+  padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
+  backdrop-filter: blur(20px);
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 4px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.2s, transform 0.15s;
+  font-family: inherit;
+}
+
+.nav-item:active { transform: scale(0.94); }
+
+.nav-item.active { color: var(--accent-2); }
+
+.nav-icon { font-size: 22px; line-height: 1; }
+
+.nav-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+/* ══════════════════════════════════════
+   МОДАЛКА
+══════════════════════════════════════ */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.modal.open { display: flex; }
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
+}
+
+.modal-content {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  background: var(--card);
+  border-radius: 24px 24px 0 0;
+  padding: 12px 20px calc(24px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.modal-handle {
+  width: 40px;
+  height: 4px;
+  background: var(--line);
+  border-radius: 2px;
+  margin: 0 auto 16px;
+}
+
+.modal-title {
+  font-size: 17px;
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.form-field label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.form-field input,
+.form-field textarea {
+  background: var(--card-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.2s;
+  width: 100%;
+  resize: vertical;
+}
+
+.form-field input:focus,
+.form-field textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.modal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.btn-cancel {
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--card-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+  font-weight: 700;
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn-save {
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #fff;
+  border: none;
+  font-weight: 800;
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(109, 94, 252, 0.4);
+}
+
+/* ══════════════════════════════════════
+   TOAST
+══════════════════════════════════════ */
+
 .toast {
   position: fixed;
   left: 50%;
-  bottom: 30px;
+  bottom: calc(90px + env(safe-area-inset-bottom));
   transform: translate(-50%, 60px);
   background: var(--card-2);
-  padding: 12px 20px;
-  border-radius: 12px;
+  color: var(--text);
+  padding: 14px 20px;
+  border-radius: var(--radius-md);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   opacity: 0;
   pointer-events: none;
-  transition: all 0.3s;
-  z-index: 100;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 300;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
   max-width: 88vw;
   text-align: center;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+  border: 1px solid var(--line);
 }
 
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
-.toast.success { background: linear-gradient(135deg, #15803d, var(--green)); }
-.toast.error { background: linear-gradient(135deg, #991b1b, var(--red)); }
+.toast.success { background: linear-gradient(135deg, #16a34a, var(--green)); border-color: transparent; }
+.toast.error { background: linear-gradient(135deg, #991b1b, var(--red)); border-color: transparent; }
 
-/* ============ LOADING ============ */
+/* ══════════════════════════════════════
+   LOADING
+══════════════════════════════════════ */
+
 .loading {
   position: fixed;
   inset: 0;
   background: var(--bg);
   display: flex;
   flex-direction: column;
+  gap: 16px;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  z-index: 200;
+  z-index: 400;
   transition: opacity 0.4s;
 }
 
-.loading.hide { opacity: 0; pointer-events: none; }
+.loading.hide {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loading div:last-child {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 700;
+}
 
 .spinner {
   width: 40px;
@@ -357,7 +887,6 @@ body {
   animation: spin 0.8s linear infinite;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* Плавный локальный тик */
-.biz-progress-fill, .stat-value { transition: all 0.3s; }
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
