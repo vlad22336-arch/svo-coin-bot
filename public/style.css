@@ -1,5 +1,5 @@
 /* =========================================================
-   SVOcoin Mini App — стили
+   SVOcoin Mini App — полный style.css
    ========================================================= */
 
 * {
@@ -22,6 +22,7 @@
   --accent: #6d5efc;
   --accent-2: #8a7dff;
   --green: #22c55e;
+  --green-2: #16a34a;
   --gold: #ffb547;
   --red: #ef4444;
   --radius: 18px;
@@ -39,7 +40,7 @@ body {
 }
 
 /* ══════════════════════════════════════
-   ЭКРАНЫ — показываем только активный
+   ЭКРАНЫ
 ══════════════════════════════════════ */
 #app {
   max-width: 520px;
@@ -53,9 +54,7 @@ body {
   animation: fadeIn 0.25s ease;
 }
 
-.screen.active {
-  display: block;
-}
+.screen.active { display: block; }
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
@@ -63,7 +62,7 @@ body {
 }
 
 /* ══════════════════════════════════════
-   ЭКРАН 1: ДОМ
+   ЭКРАН ДОМ
 ══════════════════════════════════════ */
 
 .home-header {
@@ -115,7 +114,6 @@ body {
   font-weight: 600;
 }
 
-/* Разделы (Бизнесы, Казино, Достижения) */
 .home-sections {
   display: flex;
   flex-direction: column;
@@ -150,10 +148,7 @@ body {
   flex-shrink: 0;
 }
 
-.menu-item-info {
-  flex: 1;
-  min-width: 0;
-}
+.menu-item-info { flex: 1; min-width: 0; }
 
 .menu-item-title {
   font-size: 15px;
@@ -173,7 +168,6 @@ body {
   flex-shrink: 0;
 }
 
-/* Ежедневка */
 .daily-block {
   background: linear-gradient(135deg, rgba(255, 181, 71, 0.15), rgba(255, 181, 71, 0.03));
   border: 1px solid rgba(255, 181, 71, 0.3);
@@ -184,14 +178,8 @@ body {
   gap: 12px;
 }
 
-.daily-icon {
-  font-size: 32px;
-  flex-shrink: 0;
-}
-
-.daily-info {
-  flex: 1;
-}
+.daily-icon { font-size: 32px; flex-shrink: 0; }
+.daily-info { flex: 1; }
 
 .daily-title {
   font-size: 14px;
@@ -219,12 +207,10 @@ body {
   box-shadow: 0 4px 12px rgba(255, 181, 71, 0.4);
 }
 
-.btn-daily:active {
-  transform: scale(0.96);
-}
+.btn-daily:active { transform: scale(0.96); }
 
 /* ══════════════════════════════════════
-   ЭКРАН 2: МАГАЗИН
+   ЗАГОЛОВОК ЭКРАНА
 ══════════════════════════════════════ */
 
 .screen-header {
@@ -254,6 +240,10 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* ══════════════════════════════════════
+   ЭКРАН МАГАЗИН (БИЗНЕСЫ)
+══════════════════════════════════════ */
+
 .business-list {
   display: flex;
   flex-direction: column;
@@ -270,13 +260,8 @@ body {
   gap: 10px;
 }
 
-.biz.owned {
-  border-color: rgba(109, 94, 252, 0.3);
-}
-
-.biz.locked {
-  opacity: 0.55;
-}
+.biz.owned { border-color: rgba(109, 94, 252, 0.3); }
+.biz.locked { opacity: 0.55; }
 
 .biz-header {
   display: flex;
@@ -295,10 +280,7 @@ body {
   flex-shrink: 0;
 }
 
-.biz-info {
-  flex: 1;
-  min-width: 0;
-}
+.biz-info { flex: 1; min-width: 0; }
 
 .biz-name {
   font-size: 15px;
@@ -346,7 +328,7 @@ body {
 }
 
 .biz-progress-fill.max {
-  background: linear-gradient(90deg, #16a34a, var(--green));
+  background: linear-gradient(90deg, var(--green-2), var(--green));
 }
 
 .biz-stats {
@@ -383,9 +365,7 @@ body {
   gap: 8px;
 }
 
-.biz-actions.single {
-  grid-template-columns: 1fr;
-}
+.biz-actions.single { grid-template-columns: 1fr; }
 
 .btn {
   font-family: inherit;
@@ -408,7 +388,7 @@ body {
 }
 
 .btn-upgrade {
-  background: linear-gradient(135deg, #16a34a, var(--green));
+  background: linear-gradient(135deg, var(--green-2), var(--green));
 }
 
 .btn-sell {
@@ -422,7 +402,262 @@ body {
 }
 
 /* ══════════════════════════════════════
-   ЭКРАН 3: СЕМЬИ (ПРОФИЛЬ)
+   ЭКРАН РАБОТА
+══════════════════════════════════════ */
+
+.energy-block {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.energy-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text-soft);
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.energy-bar {
+  height: 8px;
+  background: var(--card-3);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.energy-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #facc15, #f59e0b);
+  border-radius: 6px;
+  transition: width 0.4s;
+}
+
+.energy-fill.high {
+  background: linear-gradient(90deg, var(--green), #4ade80);
+}
+
+.energy-fill.low {
+  background: linear-gradient(90deg, var(--red), #f87171);
+}
+
+.job-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.job-current {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.job-emoji-big {
+  width: 60px;
+  height: 60px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.15), rgba(168, 85, 247, 0.05));
+  display: grid;
+  place-items: center;
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.job-current-info { flex: 1; }
+
+.job-current-name {
+  font-size: 17px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.job-current-salary {
+  font-size: 13px;
+  color: var(--green);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.job-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 14px;
+}
+
+.job-stat { text-align: center; }
+
+.job-stat-value {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--accent-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.job-stat-label {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-top: 4px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.btn-work {
+  width: 100%;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  border: none;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+  color: #fff;
+  background: linear-gradient(135deg, var(--green-2), var(--green));
+  box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35);
+  margin-bottom: 10px;
+  transition: transform 0.12s, opacity 0.2s;
+}
+
+.btn-work:disabled {
+  background: var(--card-2);
+  color: var(--muted);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.btn-work:active:not(:disabled) { transform: scale(0.97); }
+
+.btn-quit {
+  width: 100%;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--red);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.level-block {
+  background: linear-gradient(135deg, rgba(109, 94, 252, 0.1), transparent);
+  border: 1px solid rgba(109, 94, 252, 0.25);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+
+.level-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.level-current {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--accent-2);
+}
+
+.level-bar {
+  height: 8px;
+  background: var(--card-3);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.level-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  border-radius: 6px;
+  transition: width 0.5s;
+}
+
+.job-list-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-weight: 800;
+  margin-bottom: 10px;
+  padding: 0 2px;
+}
+
+.job-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.job-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.2s;
+}
+
+.job-item:active:not(.locked) {
+  transform: scale(0.98);
+  border-color: var(--accent);
+}
+
+.job-item.locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.job-item-emoji {
+  font-size: 26px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  background: var(--card-2);
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.job-item-info { flex: 1; min-width: 0; }
+
+.job-item-name {
+  font-size: 14px;
+  font-weight: 800;
+  margin-bottom: 3px;
+}
+
+.job-item-meta {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.job-item-salary {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--green);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ══════════════════════════════════════
+   ЭКРАН СЕМЬИ (ПРОФИЛЬ)
 ══════════════════════════════════════ */
 
 .profile-hero {
@@ -486,7 +721,6 @@ body {
   text-align: center;
 }
 
-/* Карточки */
 .card {
   background: var(--card);
   border: 1px solid var(--line);
@@ -535,10 +769,7 @@ body {
 
 .info-row:last-of-type { border-bottom: none; }
 
-.info-icon {
-  font-size: 16px;
-  text-align: center;
-}
+.info-icon { font-size: 16px; text-align: center; }
 
 .info-label {
   font-size: 13px;
@@ -564,7 +795,6 @@ body {
   min-height: 60px;
 }
 
-/* Баланс */
 .card-balance {
   background: linear-gradient(135deg, rgba(255, 181, 71, 0.1), rgba(255, 181, 71, 0.02));
   border-color: rgba(255, 181, 71, 0.25);
@@ -586,7 +816,6 @@ body {
   font-weight: 700;
 }
 
-/* Связать аккаунты */
 .card-link {
   display: flex;
   align-items: center;
@@ -599,11 +828,7 @@ body {
 
 .card-link:active { transform: scale(0.98); }
 
-.link-icon {
-  font-size: 28px;
-  flex-shrink: 0;
-}
-
+.link-icon { font-size: 28px; flex-shrink: 0; }
 .link-info { flex: 1; }
 
 .link-title {
@@ -626,7 +851,7 @@ body {
 }
 
 /* ══════════════════════════════════════
-   ЭКРАН 4: ДАЧА
+   ЭКРАН ДАЧА
 ══════════════════════════════════════ */
 
 .empty-block {
@@ -688,7 +913,6 @@ body {
 }
 
 .nav-item:active { transform: scale(0.94); }
-
 .nav-item.active { color: var(--accent-2); }
 
 .nav-icon { font-size: 22px; line-height: 1; }
@@ -789,6 +1013,12 @@ body {
   border-color: var(--accent);
 }
 
+.form-field input::placeholder,
+.form-field textarea::placeholder {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
 .modal-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -847,7 +1077,7 @@ body {
 }
 
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
-.toast.success { background: linear-gradient(135deg, #16a34a, var(--green)); border-color: transparent; }
+.toast.success { background: linear-gradient(135deg, var(--green-2), var(--green)); border-color: transparent; }
 .toast.error { background: linear-gradient(135deg, #991b1b, var(--red)); border-color: transparent; }
 
 /* ══════════════════════════════════════
