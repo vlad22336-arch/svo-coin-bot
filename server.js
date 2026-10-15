@@ -10,6 +10,7 @@ import * as G from './game.js';
 import * as Daily from './daily.js';
 import * as Ach from './achievements.js';
 import * as Casino from './casino.js';
+import * as Jobs from './jobs.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,14 +19,14 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const BOT_TOKEN = process.env.BOT_TOKEN;
 
-/* Директория для сохранения профилей */
 const PROFILES_FILE = process.env.PROFILES_FILE || '/app/data/profiles.json';
 
-/* Хранилище профилей */
+/* ============ Профили ============ */
 function loadProfiles() {
   try {
     if (!fs.existsSync(PROFILES_FILE)) return {};
-    return JSON.parse(fs.readFileSync(PROFILES_FILE, 'utf8'));
+    const data = JSON.parse(fs.readFileSync(PROFILES_FILE, 'utf8'));
+    return (typeof data === 'object' && !Array.isArray(data)) ? data : {};
   } catch { return {}; }
 }
 
@@ -40,22 +41,23 @@ function saveProfiles(data) {
 }
 
 function getProfile(userId) {
+  if (!userId) return { name: '', age: null, city: '', bio: '' };
   const profiles = loadProfiles();
-  return profiles[userId] || { name: '', age: null, city: '', bio: '' };
+  return profiles[String(userId)] || { name: '', age: null, city: '', bio: '' };
 }
 
 function updateProfile(userId, patch) {
+  if (!userId) return { name: '', age: null, city: '', bio: '' };
   const profiles = loadProfiles();
-  profiles[userId] = { ...(profiles[userId] || {}), ...patch, updatedAt: Date.now() };
+  const key = String(userId);
+  profiles[key] = { ...(profiles[key] || {}), ...patch, updatedAt: Date.now() };
   saveProfiles(profiles);
-  return profiles[userId];
+  return profiles[key];
 }
 
 /* ============ Middleware ============ */
 app.use(cors({ origin: '*' }));
 app.use(express.json());
-
-/* Статика */
 app.use(express.static(path.join(__dirname, 'public')));
 
 /* ============ Авторизация ============ */
@@ -123,9 +125,40 @@ function ensureUser(tgUser) {
   return user;
 }
 
+/* ============ Хелперы ============ */
+function buildBiz(user, tpl) {
+  const b = user.businesses[tpl.id] || null;
+  const lvl = b?.level || 0;
+  const invested = b?.invested || 0;
+  return {
+    id: tpl.id,
+    name: tpl.name,
+    emoji: tpl.emoji,
+    level: lvl,
+    maxLevel: G.MAX_LEVEL,
+    unlocked: G.canBuy(user, tpl.id),
+    price: G.getBuyPrice(tpl),
+    nextPrice: lvl === 0
+      ? G.getBuyPrice(tpl)
+      : (lvl >= G.MAX_LEVEL ? 0 : G.getUpgradePrice(tpl, lvl)),
+    income: lvl > 0 ? G.getIncome(tpl, lvl) : 0,
+    invested,
+    sellPrice: lvl > 0 ? G.getSellPrice(invested) : 0,
+  };
+}
+
+function buildState(user) {
+  return {
+    money: user.money,
+    totalEarned: user.totalEarned,
+    incomePerSec: G.totalIncomePerSec(user),
+    businesses: G.BUSINESSES.map(tpl => buildBiz(user, tpl)),
+  };
+}
+
 /* ============ API ============ */
 
-/* Загрузка состояния */
+/* Загрузка */
 app.get('/api/load', auth, (req, res) => {
   const user = ensureUser(req.tgUser);
   const offline = G.applyOffline(user);
@@ -135,6 +168,7 @@ app.get('/api/load', auth, (req, res) => {
   const daily = Daily.getDailyInfo(user);
   const achievements = Ach.listAchievements(user);
   const profile = getProfile(user.id);
+  const jobStatus = Jobs.serializeJobs(user);
 
   res.json({
     money: user.money,
@@ -142,30 +176,12 @@ app.get('/api/load', auth, (req, res) => {
     incomePerSec: G.totalIncomePerSec(user),
     incomePerHour: G.totalIncomePerSec(user) * 3600,
     offlineEarned: offline,
-    businesses: G.BUSINESSES.map(tpl => {
-      const b = user.businesses[tpl.id] || null;
-      const lvl = b?.level || 0;
-      const invested = b?.invested || 0;
-      return {
-        id: tpl.id,
-        name: tpl.name,
-        emoji: tpl.emoji,
-        level: lvl,
-        maxLevel: G.MAX_LEVEL,
-        unlocked: G.canBuy(user, tpl.id),
-        price: G.getBuyPrice(tpl),
-        nextPrice: lvl === 0
-          ? G.getBuyPrice(tpl)
-          : (lvl >= G.MAX_LEVEL ? 0 : G.getUpgradePrice(tpl, lvl)),
-        income: lvl > 0 ? G.getIncome(tpl, lvl) : 0,
-        invested,
-        sellPrice: lvl > 0 ? G.getSellPrice(invested) : 0,
-      };
-    }),
+    businesses: G.BUSINESSES.map(tpl => buildBiz(user, tpl)),
     daily,
     achievements,
     achievementsUnlocked: unlocked,
     profile,
+    job: jobStatus,
     user: {
       id: user.id,
       firstName: user.firstName,
@@ -175,7 +191,7 @@ app.get('/api/load', auth, (req, res) => {
   });
 });
 
-/* Сохранение профиля */
+/* Профиль */
 app.post('/api/profile/save', auth, (req, res) => {
   const user = ensureUser(req.tgUser);
   const patch = {
@@ -185,10 +201,7 @@ app.post('/api/profile/save', auth, (req, res) => {
     bio: String(req.body.bio || '').slice(0, 300).trim(),
   };
 
-  if (!patch.name) {
-    return res.json({ ok: false, msg: 'Имя не может быть пустым' });
-  }
-
+  if (!patch.name) return res.json({ ok: false, msg: 'Имя не может быть пустым' });
   if (patch.age && (patch.age < 1 || patch.age > 99)) {
     return res.json({ ok: false, msg: 'Возраст от 1 до 99' });
   }
@@ -203,36 +216,16 @@ app.post('/api/buy', auth, (req, res) => {
   const r = G.buy(user, req.body.id);
   const unlocked = Ach.checkAchievements(user);
   DB.saveUser(user);
-
-  res.json({
-    ...r,
-    achievementsUnlocked: unlocked,
-    state: {
-      money: user.money,
-      totalEarned: user.totalEarned,
-      incomePerSec: G.totalIncomePerSec(user),
-      businesses: G.BUSINESSES.map(tpl => buildBiz(user, tpl)),
-    },
-  });
+  res.json({ ...r, achievementsUnlocked: unlocked, state: buildState(user) });
 });
 
-/* Прокачать */
+/* Апгрейд */
 app.post('/api/upgrade', auth, (req, res) => {
   const user = ensureUser(req.tgUser);
   const r = G.upgrade(user, req.body.id);
   const unlocked = Ach.checkAchievements(user);
   DB.saveUser(user);
-
-  res.json({
-    ...r,
-    achievementsUnlocked: unlocked,
-    state: {
-      money: user.money,
-      totalEarned: user.totalEarned,
-      incomePerSec: G.totalIncomePerSec(user),
-      businesses: G.BUSINESSES.map(tpl => buildBiz(user, tpl)),
-    },
-  });
+  res.json({ ...r, achievementsUnlocked: unlocked, state: buildState(user) });
 });
 
 /* Продать */
@@ -240,16 +233,7 @@ app.post('/api/sell', auth, (req, res) => {
   const user = ensureUser(req.tgUser);
   const r = G.sell(user, req.body.id);
   DB.saveUser(user);
-
-  res.json({
-    ...r,
-    state: {
-      money: user.money,
-      totalEarned: user.totalEarned,
-      incomePerSec: G.totalIncomePerSec(user),
-      businesses: G.BUSINESSES.map(tpl => buildBiz(user, tpl)),
-    },
-  });
+  res.json({ ...r, state: buildState(user) });
 });
 
 /* Казино */
@@ -290,27 +274,41 @@ app.post('/api/daily/claim', auth, (req, res) => {
   });
 });
 
-/* Хелпер */
-function buildBiz(user, tpl) {
-  const b = user.businesses[tpl.id] || null;
-  const lvl = b?.level || 0;
-  const invested = b?.invested || 0;
-  return {
-    id: tpl.id,
-    name: tpl.name,
-    emoji: tpl.emoji,
-    level: lvl,
-    maxLevel: G.MAX_LEVEL,
-    unlocked: G.canBuy(user, tpl.id),
-    price: G.getBuyPrice(tpl),
-    nextPrice: lvl === 0
-      ? G.getBuyPrice(tpl)
-      : (lvl >= G.MAX_LEVEL ? 0 : G.getUpgradePrice(tpl, lvl)),
-    income: lvl > 0 ? G.getIncome(tpl, lvl) : 0,
-    invested,
-    sellPrice: lvl > 0 ? G.getSellPrice(invested) : 0,
-  };
-}
+/* ============ РАБОТА ============ */
+app.get('/api/jobs', auth, (req, res) => {
+  const user = ensureUser(req.tgUser);
+  const status = Jobs.serializeJobs(user);
+  DB.saveUser(user);
+  res.json(status);
+});
+
+app.post('/api/jobs/apply', auth, (req, res) => {
+  const user = ensureUser(req.tgUser);
+  const r = Jobs.applyForJob(user, req.body.jobId);
+  DB.saveUser(user);
+  res('/.json({ ...r, status: Jobs.serializeJobs(user) });
+});
+
+apiapp.post('/api/jobs/quit', auth,/j (req, res) => {
+  constobs user = ensureUser(req.tgUser);
+  const r/work = Jobs.quitJob(user);
+  DB',.saveUser(user);
+  res.json({ ...r, status: Jobs.serializeJobs(user) });
+});
+
+app.post auth, (req, res) => {
+  const user = ensureUser(req.tgUser);
+  const r = Jobs.workShift(user);
+  const unlocked = Ach.checkAchievements(user);
+  DB.saveUser(user);
+
+  res.json({
+    ...r,
+    achievementsUnlocked: unlocked,
+    status: Jobs.serializeJobs(user),
+    state: { money: user.money, totalEarned: user.totalEarned },
+  });
+});
 
 /* Health */
 app.get('/health', (_, res) => res.json({ ok: true }));
