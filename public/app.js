@@ -182,3 +182,112 @@ function render() {
     el.className = 'ach-item ' + (a.unlocked ? 'unlocked' : 'locked');
     el.innerHTML = `
       <div class="ach-emoji">${a.emoji}</div>
+      <div class="ach-title">${a.title}</div>
+    `;
+    el.onclick = () => toast(`${a.emoji} ${a.title}\n${a.desc}`, a.unlocked ? 'success' : '');
+    achGrid.appendChild(el);
+  });
+}
+
+/* ============ Действия ============ */
+async function action(promise) {
+  try {
+    const r = await promise;
+    if (r.ok === false) {
+      toast(r.msg || 'Ошибка', 'error');
+      return;
+    }
+    if (r.state) applyState(r.state);
+    if (r.daily) State.daily = r.daily;
+    if (r.achievements) State.achievements = r.achievements;
+
+    /* Показ новых достижений */
+    if (r.achievementsUnlocked?.length) {
+      r.achievementsUnlocked.forEach((a, i) => {
+        setTimeout(() => toast(`🏆 ${a.emoji} ${a.title}`, 'success'), i * 500);
+      });
+    }
+
+    render();
+
+    if (r.msg) toast(r.msg, 'success');
+  } catch (e) {
+    console.error(e);
+    toast('Ошибка соединения', 'error');
+  }
+}
+
+function applyState(s) {
+  if (!s) return;
+  State.money = s.money ?? State.money;
+  State.totalEarned = s.totalEarned ?? State.totalEarned;
+  State.incomePerSec = s.incomePerSec ?? State.incomePerSec;
+  State.incomePerHour = State.incomePerSec * 3600;
+  State.businesses = s.businesses ?? State.businesses;
+  State.lastLocalTick = Date.now();
+}
+
+/* ============ Локальный тик баланса ============ */
+function localTick() {
+  const now = Date.now();
+  const dt = (now - State.lastLocalTick) / 1000;
+  State.lastLocalTick = now;
+  if (State.incomePerSec > 0) {
+    State.money += State.incomePerSec * dt;
+    State.totalEarned += State.incomePerSec * dt;
+  }
+}
+
+/* ============ Ежедневка ============ */
+document.getElementById('dailyBtn').onclick = () => {
+  action(api('/api/daily/claim', 'POST'));
+};
+
+/* ============ Инициализация ============ */
+async function init() {
+  if (tg) {
+    tg.ready();
+    tg.expand();
+    if (tg.setHeaderColor) tg.setHeaderColor('#0f1115');
+    if (tg.setBackgroundColor) tg.setBackgroundColor('#0f1115');
+    if (tg.enableClosingConfirmation) tg.enableClosingConfirmation();
+  }
+
+  try {
+    const data = await api('/api/load');
+
+    State.money = data.money;
+    State.totalEarned = data.totalEarned;
+    State.incomePerSec = data.incomePerSec;
+    State.incomePerHour = data.incomePerHour;
+    State.businesses = data.businesses;
+    State.daily = data.daily;
+    State.achievements = data.achievements;
+    State.lastLocalTick = Date.now();
+
+    render();
+    document.getElementById('loading').classList.add('hide');
+
+    /* Показать оффлайн-доход */
+    if (data.offlineEarned > 0) {
+      setTimeout(() => toast(`Пока вас не было: +${fmt(data.offlineEarned)}`, 'success'), 800);
+    }
+
+    /* Показать новые достижения */
+    if (data.achievementsUnlocked?.length) {
+      data.achievementsUnlocked.forEach((a, i) => {
+        setTimeout(() => toast(`🏆 ${a.emoji} ${a.title}`, 'success'), 1500 + i * 500);
+      });
+    }
+  } catch (e) {
+    console.error(e);
+    document.getElementById('loading').classList.add('hide');
+    toast('Ошибка загрузки', 'error');
+  }
+
+  /* Локальный тик */
+  setInterval(localTick, 500);
+  setInterval(render, 1000);
+}
+
+init();
