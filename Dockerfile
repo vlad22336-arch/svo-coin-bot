@@ -9,5 +9,5 @@ RUN npm install --omit=dev
 # Копируем весь проект
 COPY . .
 
-# Запускаем API сервер (Mini App) и бота параллельно
+# Запускаем API + бота параллельно
 CMD sh -c "node server.js & node bot.js"
