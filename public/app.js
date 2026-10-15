@@ -44,7 +44,6 @@ function fmt(n) {
 }
 
 function fmtBig(n) {
-  /* Для отображения без "SC" (для блока баланса) */
   if (n < 1000) return Math.floor(n).toString();
   const units = [
     { v: 1e15, s: 'Q' }, { v: 1e12, s: 'T' },
@@ -88,32 +87,33 @@ function toast(msg, type = '') {
 function showScreen(name) {
   State.activeScreen = name;
 
-  /* Скрываем все экраны, показываем активный */
   document.querySelectorAll('.screen').forEach(s => {
     s.classList.toggle('active', s.dataset.screen === name);
   });
 
-  /* Нижние табы */
   document.querySelectorAll('.nav-item').forEach(n => {
     n.classList.toggle('active', n.dataset.nav === name);
   });
 
-  /* Скролл вверх */
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-/* Обработчики нижних табов */
+/* Нижние табы */
 document.querySelectorAll('.nav-item').forEach(btn => {
   btn.onclick = () => showScreen(btn.dataset.nav);
 });
 
-/* Обработчики разделов на главном (Бизнесы, Казино, Достижения) */
+/* Разделы на главном */
 document.querySelectorAll('[data-nav]').forEach(el => {
   if (el.classList.contains('nav-item')) return;
   el.onclick = () => {
     const nav = el.dataset.nav;
     if (nav === 'businesses') showScreen('shop');
-    else if (nav === 'casino') toast('🎰 Казино — используй команду /рулетка в боте', '');
+    else if (nav === 'job') {
+      showScreen('job');
+      loadJobScreen();
+    }
+    else if (nav === 'casino') toast('🎰 Казино — используй /рулетка в боте', '');
     else if (nav === 'achievements') toast('🏆 Достижения — в разработке', '');
   };
 });
@@ -122,7 +122,6 @@ document.querySelectorAll('[data-nav]').forEach(el => {
 function renderProfile() {
   const user = tg?.initDataUnsafe?.user;
 
-  /* Имя из Telegram */
   const tgName = user
     ? (user.first_name + (user.last_name ? ' ' + user.last_name : '')).toUpperCase()
     : 'ИГРОК';
@@ -132,7 +131,6 @@ function renderProfile() {
   const username = user?.username ? '@' + user.username : 'ID ' + (user?.id || '—');
   document.getElementById('profileUsername').textContent = username;
 
-  /* Аватар */
   const avatarImg = document.getElementById('profileAvatar');
   const avatarInitial = document.getElementById('profileInitial');
 
@@ -146,7 +144,6 @@ function renderProfile() {
     avatarInitial.textContent = (user?.first_name || 'U')[0].toUpperCase();
   }
 
-  /* О СЕБЕ */
   const p = State.profile;
   document.getElementById('infoName').textContent = p.name || '—';
   document.getElementById('infoAge').textContent = p.age || '—';
@@ -164,17 +161,18 @@ function renderProfile() {
   }
 }
 
-/* Открытие модалки редактирования */
+/* Открытие модалки */
 document.getElementById('editProfileBtn').onclick = () => {
-  document.getElementById('editName').value = State.profile.name || '';
-  document.getElementById('editAge').value = State.profile.age || '';
-  document.getElementById('editCity').value = State.profile.city || '';
-  document.getElementById('editBio').value = State.profile.bio || '';
+  const p = State.profile;
+  document.getElementById('editName').value = p.name || '';
+  document.getElementById('editAge').value = p.age || '';
+  document.getElementById('editCity').value = p.city || '';
+  document.getElementById('editBio').value = p.bio || '';
 
   document.getElementById('editModal').classList.add('open');
 };
 
-/* Закрытие модалки */
+/* Закрытие */
 document.querySelectorAll('[data-close]').forEach(el => {
   el.onclick = () => document.getElementById('editModal').classList.remove('open');
 });
@@ -208,9 +206,7 @@ document.getElementById('saveProfile').onclick = async () => {
       document.getElementById('editModal').classList.remove('open');
       toast('✅ Профиль сохранён', 'success');
 
-      if (tg?.HapticFeedback) {
-        tg.HapticFeedback.notificationOccurred('success');
-      }
+      if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
     } else {
       toast(r.msg || 'Ошибка', 'error');
     }
@@ -225,15 +221,10 @@ document.getElementById('saveProfile').onclick = async () => {
 
 /* ============ Render ============ */
 function render() {
-  /* ДОМ: баланс */
   document.getElementById('homeBalance').textContent = fmtBig(State.money);
   document.getElementById('homeIncome').textContent = fmt(State.incomePerSec) + '/сек';
   document.getElementById('homeIncomeHour').textContent = fmt(State.incomePerHour) + '/час';
-
-  /* МАГАЗИН: баланс */
   document.getElementById('shopBalance').textContent = fmt(State.money);
-
-  /* СЕМЬИ: баланс */
   document.getElementById('familyBalance').textContent = fmtBig(State.money);
 
   /* Ежедневка */
@@ -246,13 +237,13 @@ function render() {
     dailyBlock.style.display = 'none';
   }
 
-  /* Достижения — счётчик */
+  /* Достижения */
   const achUnlocked = State.achievements.filter(a => a.unlocked).length;
   document.getElementById('achSub').textContent =
     `${achUnlocked} из ${State.achievements.length || 8} получено`;
 
-  /* Список бизнесов */
   renderBusinesses();
+  updateJobSub();
 }
 
 function renderBusinesses() {
@@ -268,7 +259,6 @@ function renderBusinesses() {
 
     card.className = 'biz' + (b.level > 0 ? ' owned' : (b.unlocked ? '' : ' locked'));
 
-    /* Header */
     const header = document.createElement('div');
     header.className = 'biz-header';
     header.innerHTML = `
@@ -289,7 +279,6 @@ function renderBusinesses() {
     `;
     card.appendChild(header);
 
-    /* Прогресс */
     if (b.level > 0) {
       const prog = document.createElement('div');
       prog.className = 'biz-progress';
@@ -311,7 +300,6 @@ function renderBusinesses() {
       card.appendChild(stats);
     }
 
-    /* Кнопки */
     const actions = document.createElement('div');
     actions.className = 'biz-actions';
 
@@ -367,7 +355,6 @@ async function action(promise) {
 
     render();
 
-    /* Новые достижения */
     if (r.achievementsUnlocked?.length) {
       r.achievementsUnlocked.forEach((a, i) => {
         setTimeout(() => toast(`🏆 ${a.emoji} ${a.title}`, 'success'), i * 500);
@@ -376,9 +363,7 @@ async function action(promise) {
 
     if (r.msg) toast(r.msg, 'success');
 
-    if (tg?.HapticFeedback) {
-      tg.HapticFeedback.notificationOccurred('success');
-    }
+    if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
   } catch (e) {
     console.error(e);
     toast('Ошибка соединения', 'error');
@@ -411,6 +396,229 @@ function localTick() {
   }
 }
 
+/* =========================================================
+   💼 РАБОТА
+   ========================================================= */
+
+const JobState = {
+  currentJob: null,
+  availableJobs: [],
+  energy: { current: 100, max: 100 },
+  level: { level: 1, toNext: 0, progress: 0 },
+};
+
+async function loadJobScreen() {
+  try {
+    const r = await api('/api/jobs');
+    JobState.currentJob = r.currentJob;
+    JobState.availableJobs = r.availableJobs;
+    JobState.energy = r.energy;
+    JobState.level = r.level;
+    renderJobScreen();
+  } catch (e) {
+    console.error(e);
+    toast('Ошибка загрузки', 'error');
+  }
+}
+
+function renderJobScreen() {
+  document.getElementById('jobLevel').textContent = `Lv ${JobState.level.level}`;
+
+  const energyPct = (JobState.energy.current / JobState.energy.max) * 100;
+  document.getElementById('jobEnergyText').textContent =
+    `${JobState.energy.current} / ${JobState.energy.max}`;
+
+  const fill = document.getElementById('jobEnergyFill');
+  fill.style.width = energyPct + '%';
+  fill.className = 'energy-fill';
+  if (energyPct > 60) fill.classList.add('high');
+  else if (energyPct < 30) fill.classList.add('low');
+
+  const container = document.getElementById('jobContent');
+  container.innerHTML = '';
+
+  if (JobState.currentJob) {
+    renderCurrentJob(container);
+  } else {
+    renderJobList(container);
+  }
+}
+
+function renderCurrentJob(container) {
+  const j = JobState.currentJob;
+  const canWork = j.cooldownLeft === 0 && JobState.energy.current >= j.energyCost;
+
+  const card = document.createElement('div');
+  card.className = 'job-card';
+
+  card.innerHTML = `
+    <div class="job-current">
+      <div class="job-emoji-big">${j.emoji}</div>
+      <div class="job-current-info">
+        <div class="job-current-name">${j.name}</div>
+        <div class="job-current-salary">${fmt(j.salaryPerHour)}/час</div>
+      </div>
+    </div>
+
+    <div class="job-stats">
+      <div class="job-stat">
+        <div class="job-stat-value">${j.shiftsDone}</div>
+        <div class="job-stat-label">Смен</div>
+      </div>
+      <div class="job-stat">
+        <div class="job-stat-value">${fmt(j.totalEarned)}</div>
+        <div class="job-stat-label">Заработано</div>
+      </div>
+      <div class="job-stat">
+        <div class="job-stat-value">${JobState.energy.current}</div>
+        <div class="job-stat-label">Энергия</div>
+      </div>
+    </div>
+
+    <button class="btn-work" ${!canWork ? 'disabled' : ''} id="workBtn">
+      ${
+        !canWork
+          ? (j.cooldownLeft > 0
+              ? `⏰ Отдых ${j.cooldownLeft} мин.`
+              : `⚡ Нужно ${j.energyCost} энергии`)
+          : `🔥 Работать (${j.workDurationMin} мин)`
+      }
+    </button>
+
+    <button class="btn-quit" id="quitJobBtn">🚪 Уволиться</button>
+  `;
+
+  container.appendChild(card);
+
+  const workBtn = document.getElementById('workBtn');
+  if (canWork) workBtn.onclick = doWork;
+
+  document.getElementById('quitJobBtn').onclick = quitJob;
+}
+
+function renderJobList(container) {
+  const lvl = JobState.level;
+
+  const levelBlock = document.createElement('div');
+  levelBlock.className = 'level-block';
+  levelBlock.innerHTML = `
+    <div class="level-head">
+      <span>⭐ Уровень <span class="level-current">${lvl.level}</span></span>
+      <span style="color:var(--muted);font-size:11px;">
+        до ${lvl.level + 1} — ${fmt(lvl.toNext)}
+      </span>
+    </div>
+    <div class="level-bar">
+      <div class="level-fill" style="width:${lvl.progress * 100}%"></div>
+    </div>
+  `;
+  container.appendChild(levelBlock);
+
+  const title = document.createElement('div');
+  title.className = 'job-list-title';
+  title.textContent = 'Доступные вакансии';
+  container.appendChild(title);
+
+  const list = document.createElement('div');
+  list.className = 'job-list';
+
+  JobState.availableJobs.forEach(j => {
+    const el = document.createElement('div');
+    el.className = 'job-item ' + (j.available ? 'available' : 'locked');
+
+    el.innerHTML = `
+      <div class="job-item-emoji">${j.emoji}</div>
+      <div class="job-item-info">
+        <div class="job-item-name">${j.name}${!j.available ? ' 🔒' : ''}</div>
+        <div class="job-item-meta">
+          ⚡ ${j.energyCost} · Lv ${j.minLevel}+
+        </div>
+      </div>
+      <div class="job-item-salary">${fmt(j.salaryPerHour)}/ч</div>
+    `;
+
+    if (j.available) {
+      el.onclick = () => {
+        if (!confirm(`Устроиться на работу «${j.name}»?`)) return;
+        applyJob(j.id);
+      };
+    }
+
+    list.appendChild(el);
+  });
+
+  container.appendChild(list);
+}
+
+async function applyJob(jobId) {
+  try {
+    const r = await api('/api/jobs/apply', 'POST', { jobId });
+    if (r.ok) {
+      toast(`✅ ${r.msg}`, 'success');
+      JobState.currentJob = r.status.currentJob;
+      JobState.availableJobs = r.status.availableJobs;
+      renderJobScreen();
+      updateJobSub();
+      if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+    } else {
+      toast(r.msg || 'Ошибка', 'error');
+    }
+  } catch (e) {
+    toast('Ошибка соединения', 'error');
+  }
+}
+
+async function doWork() {
+  try {
+    const r = await api('/api/jobs/work', 'POST');
+    if (r.ok) {
+      let msg = `💰 +${fmt(r.salary)}`;
+      if (r.multiplier > 1) msg += ` (×${r.multiplier}!)`;
+      toast(msg, 'success');
+
+      JobState.currentJob = r.status.currentJob;
+      JobState.energy = r.status.energy;
+      JobState.level = r.status.level;
+
+      if (r.state) applyState(r.state);
+
+      renderJobScreen();
+      render();
+
+      if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+    } else {
+      toast(r.msg || 'Ошибка', 'error');
+    }
+  } catch (e) {
+    toast('Ошибка соединения', 'error');
+  }
+}
+
+async function quitJob() {
+  if (!confirm('Уволиться с работы?')) return;
+  try {
+    const r = await api('/api/jobs/quit', 'POST');
+    if (r.ok) {
+      toast('🚪 Уволились', '');
+      JobState.currentJob = null;
+      renderJobScreen();
+      updateJobSub();
+    }
+  } catch (e) {
+    toast('Ошибка', 'error');
+  }
+}
+
+function updateJobSub() {
+  const sub = document.getElementById('jobSubInfo');
+  if (!sub) return;
+  if (JobState.currentJob) {
+    sub.textContent = `${JobState.currentJob.emoji} ${JobState.currentJob.name}`;
+  } else {
+    sub.textContent = 'Устройся и зарабатывай';
+  }
+}
+
 /* ============ Инициализация ============ */
 async function init() {
   if (tg) {
@@ -434,17 +642,23 @@ async function init() {
     State.profile = data.profile || { name: '', age: null, city: '', bio: '' };
     State.lastLocalTick = Date.now();
 
+    /* Загружаем статус работы */
+    if (data.job) {
+      JobState.currentJob = data.job.currentJob;
+      JobState.availableJobs = data.job.availableJobs;
+      JobState.energy = data.job.energy;
+      JobState.level = data.job.level;
+    }
+
     renderProfile();
     render();
 
     document.getElementById('loading').classList.add('hide');
 
-    /* Оффлайн-доход */
     if (data.offlineEarned > 0) {
       setTimeout(() => toast(`💤 Пока вас не было: +${fmt(data.offlineEarned)}`, 'success'), 800);
     }
 
-    /* Новые достижения */
     if (data.achievementsUnlocked?.length) {
       data.achievementsUnlocked.forEach((a, i) => {
         setTimeout(() => toast(`🏆 ${a.emoji} ${a.title}`, 'success'), 1500 + i * 500);
@@ -456,7 +670,6 @@ async function init() {
     toast('Ошибка загрузки', 'error');
   }
 
-  /* Локальный тик + рендер */
   setInterval(localTick, 500);
   setInterval(render, 1000);
 }
