@@ -174,8 +174,6 @@ bot.onText(/^\/(продать|sell)\s+(\w+)$/i, (msg, match) => {
 });
 
 /* ============ 🎰 /рулетка [ставка] ============ */
-const pendingSpins = new Map(); // chatId → { userId, bet }
-
 bot.onText(/^\/(рулетка|слоты|slot|spin)(?:\s+(\d+))?$/i, async (msg, match) => {
   const user = getUser(msg.from);
   G.applyOffline(user);
@@ -211,7 +209,7 @@ bot.onText(/^\/(рулетка|слоты|slot|spin)(?:\s+(\d+))?$/i, async (msg
       reply_to_message_id: msg.message_id,
     });
 
-    /* Ждём завершения анимации (4 секунды) */
+    /* Ждём завершения анимации */
     await new Promise(r => setTimeout(r, 4200));
 
     const diceValue = diceMsg.dice.value;
@@ -223,18 +221,19 @@ bot.onText(/^\/(рулетка|слоты|slot|spin)(?:\s+(\d+))?$/i, async (msg
     const unlocked = Ach.checkAchievements(freshUser);
     sync(freshUser);
 
-    /* Формируем результат */
+    /* Формируем результат — БЕЗ строки "Выпало" */
     let text = `🎰 <b>Однорукий бандит</b>\n\n`;
-    text += `<b>Ставка:</b> ${G.fmt(prep.bet)}\n`;
-    text += `<b>Выпало:</b> <code>${Casino.describeDice(diceValue)}</code>\n\n`;
+    text += `🎯 Ставка: <b>${G.fmt(prep.bet)}</b>\n\n`;
 
     if (result.win) {
       if (result.jackpot) {
-        text += `🎉🎉🎉 <b>${result.label}</b>\n`;
+        text += `🎉🎉🎉 <b>ДЖЕКПОТ!</b> (×10)\n`;
+      } else if (result.multiplier >= 5) {
+        text += `🎉 <b>Крупный выигрыш!</b> (×${result.multiplier})\n`;
       } else if (result.multiplier >= 3) {
-        text += `🎉 <b>${result.label}</b> (×${result.multiplier})\n`;
+        text += `✨ <b>Отлично!</b> (×${result.multiplier})\n`;
       } else {
-        text += `✨ <b>${result.label}</b> (×${result.multiplier})\n`;
+        text += `💫 <b>Пара!</b> (×${result.multiplier})\n`;
       }
       text += `💰 <b>+${G.fmt(result.gain)} SC</b>`;
     } else {
