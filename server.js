@@ -286,17 +286,17 @@ app.post('/api/jobs/apply', auth, (req, res) => {
   const user = ensureUser(req.tgUser);
   const r = Jobs.applyForJob(user, req.body.jobId);
   DB.saveUser(user);
-  res('/.json({ ...r, status: Jobs.serializeJobs(user) });
-});
-
-apiapp.post('/api/jobs/quit', auth,/j (req, res) => {
-  constobs user = ensureUser(req.tgUser);
-  const r/work = Jobs.quitJob(user);
-  DB',.saveUser(user);
   res.json({ ...r, status: Jobs.serializeJobs(user) });
 });
 
-app.post auth, (req, res) => {
+app.post('/api/jobs/quit', auth, (req, res) => {
+  const user = ensureUser(req.tgUser);
+  const r = Jobs.quitJob(user);
+  DB.saveUser(user);
+  res.json({ ...r, status: Jobs.serializeJobs(user) });
+});
+
+app.post('/api/jobs/work', auth, (req, res) => {
   const user = ensureUser(req.tgUser);
   const r = Jobs.workShift(user);
   const unlocked = Ach.checkAchievements(user);
