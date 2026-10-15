@@ -1,96 +1,126 @@
-/* Казино — однорукий бандит */
+/* Казино — используем Telegram Dice для анимации */
 
 export const MIN_BET = 10;
-export const MAX_BET = 1_000_000_000; // 1 миллиард
+export const MAX_BET = 1_000_000_000;
 
-/* Символы и веса */
-export const SYMBOLS = [
-  { id: 'seven',   char: '7️⃣',  weight: 2,  payout3: 10 },
-  { id: 'diamond', char: '💎',  weight: 4,  payout3: 7 },
-  { id: 'grape',   char: '🍇',  weight: 8,  payout3: 5 },
-  { id: 'cherry',  char: '🍒',  weight: 15, payout3: 3 },
-  { id: 'lemon',   char: '🍋',  weight: 20, payout3: 0 },
-  { id: 'bell',    char: '🔔',  weight: 12, payout3: 0 },
-  { id: 'orange',  char: '🍊',  weight: 18, payout3: 0 },
-];
+/* 
+  Telegram Dice 🎰 возвращает значения 1-64
+  Распределение:
+  1-43 (67%) → проигрыш (мелкий 1-14, 15-30, 31-43)
+  44-54 (17%) → мелочь (pair, ×1.5)
+  55-60 (9%)  → средний выигрыш (×3)
+  61-63 (5%)  → крупный (×5)
+  64  (1.5%)  → ДЖЕКПОТ (×10)
+  
+  Причём: 
+  - 1 = 🍒🍒🍒 (три вишни)
+  - 22 = 🍋🍋🍋 (три лимона)
+  - 43 = 🍋🍇🍊 (без совпадений)
+  - 64 = 7️⃣7️⃣7️⃣ (три семёрки!)
+*/
 
-const TOTAL_WEIGHT = SYMBOLS.reduce((s, x) => s + x.weight, 0);
-
-/* Выбрать символ по весу */
-function pickSymbol() {
-  let r = Math.random() * TOTAL_WEIGHT;
-  for (const s of SYMBOLS) {
-    r -= s.weight;
-    if (r <= 0) return s;
-  }
-  return SYMBOLS[0];
-}
-
-/* Рассчитать выигрыш */
-export function calculatePayout(reels, bet) {
-  const [a, b, c] = reels;
-
-  /* Все три одинаковые */
-  if (a.id === b.id && b.id === c.id) {
-    if (a.payout3 > 0) {
-      return {
-        win: true,
-        multiplier: a.payout3,
-        gain: Math.floor(bet * a.payout3),
-        combo: `${a.char}${a.char}${a.char}`,
-        jackpot: a.id === 'seven',
-      };
-    }
-    /* Три одинаковых редких без выигрыша (lemon/bell/orange) — считаем парой */
-  }
-
-  /* Любая пара — ×1.5 */
-  const counts = {};
-  for (const r of reels) counts[r.id] = (counts[r.id] || 0) + 1;
-  const hasPair = Object.values(counts).some(v => v >= 2);
-
-  if (hasPair) {
+/* Определяем результат по значению dice */
+export function getResultByDice(value) {
+  /* Джекпот — 7️⃣7️⃣7️⃣ */
+  if (value === 64) {
     return {
       win: true,
-      multiplier: 1.5,
-      gain: Math.floor(bet * 1.5),
-      combo: 'Пара',
+      multiplier: 10,
+      combo: '7️⃣7️⃣7️⃣',
+      jackpot: true,
+      label: 'ДЖЕКПОТ!',
     };
   }
 
+  /* Крупный выигрыш — 61-63 */
+  if (value >= 61) {
+    return {
+      win: true,
+      multiplier: 5,
+      combo: 'три в ряд',
+      label: 'Крупный выигрыш!',
+    };
+  }
+
+  /* Средний — 55-60 */
+  if (value >= 55) {
+    return {
+      win: true,
+      multiplier: 3,
+      combo: 'три в ряд',
+      label: 'Отлично!',
+    };
+  }
+
+  /* Мелочь — 44-54 */
+  if (value >= 44) {
+    return {
+      win: true,
+      multiplier: 1.5,
+      combo: 'пара',
+      label: 'Пара!',
+    };
+  }
+
+  /* Проигрыш */
   return {
     win: false,
     multiplier: 0,
-    gain: 0,
-    combo: 'Мимо',
+    combo: 'мимо',
+    label: 'Мимо',
   };
 }
 
+/* Описание символов по значению (для текста) */
+export function describeDice(value) {
+  if (value === 64) return '7️⃣ | 7️⃣ | 7️⃣';
+  if (value === 1) return '🍒 | 🍒 | 🍒';
+  if (value === 22) return '🍋 | 🍋 | 🍋';
+  if (value === 43) return '🍇 | 🍇 | 🍇';
+
+  /* Разные комбинации для других чисел (для визуальной части) */
+  const symbols = ['🍋', '🍇', '🍊', '🔔', '🍒', '💎'];
+  const a = symbols[value % symbols.length];
+  const b = symbols[(value * 2) % symbols.length];
+  const c = symbols[(value * 3) % symbols.length];
+
+  /* Если все совпали — заменяем */
+  if (a === b && b === c) return `${a} | ${b} | 🍋`;
+
+  return `${a} | ${b} | ${c}`;
+}
+
 /* Сделать спин */
-export function spin(user, bet) {
+export function prepareSpin(user, bet) {
   bet = Math.floor(Number(bet));
 
   if (!Number.isFinite(bet) || bet < MIN_BET) {
     return { ok: false, msg: `Минимальная ставка — ${MIN_BET} SC` };
   }
   if (bet > MAX_BET) {
-    return { ok: false, msg: `Максимальная ставка — 1B SC` };
+    return { ok: false, msg: `Максимум 1B SC` };
   }
   if (user.money < bet) {
-    return { ok: false, msg: `Не хватает ${bet - Math.floor(user.money)} SC` };
+    return { ok: false, msg: `Не хватает ${Math.floor(bet - user.money)} SC` };
   }
 
-  /* Списываем ставку */
+  /* Списываем ставку сразу */
   user.money -= bet;
 
-  /* Крутим 3 барабана */
-  const reels = [pickSymbol(), pickSymbol(), pickSymbol()];
-  const result = calculatePayout(reels, bet);
+  return { ok: true, bet };
+}
 
-  /* Выплата */
+/* Обработка результата dice */
+export function handleDiceResult(user, bet, diceValue) {
+  const result = getResultByDice(diceValue);
+
   if (result.win) {
-    user.money += result.gain;
-    user.totalEarned = (user.totalEarned || 0) + result.gain;
+    const gain = Math.floor(bet * result.multiplier);
+    user.money += gain;
+    user.totalEarned = (user.totalEarned || 0) + gain;
+    result.gain = gain;
+  } else {
+    result.gain = 0;
   }
 
   /* Статистика */
@@ -104,20 +134,6 @@ export function spin(user, bet) {
     user.stats.maxSpinWin = result.multiplier;
   }
 
-  return {
-    ok: true,
-    reels: reels.map(r => r.char),
-    ...result,
-    bet,
-    newBalance: user.money,
-  };
-}
-
-/* Красивое поле слотов */
-export function renderReels(reels) {
-  return (
-    `┌─────────────┐\n` +
-    `│  ${reels[0]}  │  ${reels[1]}  │  ${reels[2]}  │\n` +
-    `└─────────────┘`
-  );
+  result.newBalance = user.money;
+  return result;
 }
