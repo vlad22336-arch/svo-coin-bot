@@ -34,12 +34,17 @@ function getUser(tgUser) {
   return user;
 }
 
-function sync(user) { DB.saveUser(user); }
+function sync(user) {
+  DB.saveUser(user);
+}
 
 function notifyNewAchievements(chatId, unlocked) {
   if (!unlocked.length) return;
   const lines = unlocked.map(a => `${a.emoji} <b>${a.title}</b> — ${a.desc}`);
-  bot.sendMessage(chatId, `🏆 <b>Новое достижение!</b>\n\n${lines.join('\n')}`, { parse_mode: 'HTML' }).catch(() => {});
+  bot.sendMessage(chatId,
+    `🏆 <b>Новое достижение!</b>\n\n${lines.join('\n')}`,
+    { parse_mode: 'HTML' }
+  ).catch(() => {});
 }
 
 /* ============ /start ============ */
@@ -116,7 +121,10 @@ bot.onText(/^\/купить\s+(\w+)$/i, (msg, match) => {
   const user = getUser(msg.from);
   G.applyOffline(user);
   const r = G.buy(user, match[1]);
-  if (!r.ok) { sync(user); return bot.sendMessage(msg.chat.id, `❌ ${r.msg}`); }
+  if (!r.ok) {
+    sync(user);
+    return bot.sendMessage(msg.chat.id, `❌ ${r.msg}`);
+  }
 
   const unlocked = Ach.checkAchievements(user);
   sync(user);
@@ -135,7 +143,9 @@ bot.onText(/^\/(бизнесы|мои бизнесы)/i, (msg) => {
   sync(user);
 
   const owned = Object.entries(user.businesses);
-  if (!owned.length) return bot.sendMessage(msg.chat.id, '🏢 Пусто. /магазин');
+  if (!owned.length) {
+    return bot.sendMessage(msg.chat.id, '🏢 Пусто. /магазин');
+  }
 
   const lines = owned.map(([id, b]) => {
     const tpl = G.BUSINESSES.find(t => t.id === id);
@@ -143,7 +153,10 @@ bot.onText(/^\/(бизнесы|мои бизнесы)/i, (msg) => {
     return `${tpl.emoji} <b>${tpl.name}</b> Lv${b.level} · ${G.fmt(G.getIncome(tpl, b.level))}/сек`;
   });
 
-  bot.sendMessage(msg.chat.id, `🏢 <b>Твоя империя</b>\n\n${lines.join('\n')}`, { parse_mode: 'HTML' });
+  bot.sendMessage(msg.chat.id,
+    `🏢 <b>Твоя империя</b>\n\n${lines.join('\n')}`,
+    { parse_mode: 'HTML' }
+  );
 });
 
 /* ============ /апгрейд ============ */
@@ -151,7 +164,10 @@ bot.onText(/^\/(апгрейд|прокачать)\s+(\w+)$/i, (msg, match) => {
   const user = getUser(msg.from);
   G.applyOffline(user);
   const r = G.upgrade(user, match[2]);
-  if (!r.ok) { sync(user); return bot.sendMessage(msg.chat.id, `❌ ${r.msg}`); }
+  if (!r.ok) {
+    sync(user);
+    return bot.sendMessage(msg.chat.id, `❌ ${r.msg}`);
+  }
 
   const unlocked = Ach.checkAchievements(user);
   sync(user);
@@ -173,7 +189,9 @@ bot.onText(/^\/(продать|sell)\s+(\w+)$/i, (msg, match) => {
   bot.sendMessage(msg.chat.id, `💸 ${r.msg}\n💰 ${G.fmt(user.money)}`);
 });
 
-/* ============ 🎰 /рулетка [ставка] ============ */
+/* =========================================================
+   🎰 /рулетка [ставка]
+   ========================================================= */
 bot.onText(/^\/(рулетка|слоты|slot|spin)(?:\s+(\d+))?$/i, async (msg, match) => {
   const user = getUser(msg.from);
   G.applyOffline(user);
@@ -181,11 +199,17 @@ bot.onText(/^\/(рулетка|слоты|slot|spin)(?:\s+(\d+))?$/i, async (msg
 
   const bet = Number(match[2] || 0);
 
+  /* Нет ставки → показываем справку */
   if (!bet) {
     return bot.sendMessage(msg.chat.id,
       `🎰 <b>Однорукий бандит</b>\n\n` +
-      `<b>Символы:</b> 7️⃣×10 · 💎×7 · 🍇×5 · 🍒×3 · пара×1.5\n\n` +
-      `<b>Как играть:</b>\n` +
+      `<b>Символы:</b>\n` +
+      `7️⃣7️⃣7️⃣ — ×10 ДЖЕКПОТ\n` +
+      `BAR BAR BAR — ×5\n` +
+      `🍒🍒🍒 — ×5\n` +
+      `🍋🍋🍋 — ×5\n` +
+      `Любая пара — ×1.5\n\n` +
+      `<b>Ставки:</b>\n` +
       `/рулетка 100\n` +
       `/рулетка 1000\n` +
       `/рулетка 10000\n\n` +
@@ -194,7 +218,7 @@ bot.onText(/^\/(рулетка|слоты|slot|spin)(?:\s+(\d+))?$/i, async (msg
     );
   }
 
-  /* Подготовка: списываем ставку */
+  /* Подготовка — списываем ставку */
   const prep = Casino.prepareSpin(user, bet);
   if (!prep.ok) {
     return bot.sendMessage(msg.chat.id, `❌ ${prep.msg}`);
@@ -209,31 +233,30 @@ bot.onText(/^\/(рулетка|слоты|slot|spin)(?:\s+(\d+))?$/i, async (msg
       reply_to_message_id: msg.message_id,
     });
 
-    /* Ждём завершения анимации */
+    /* Ждём завершения анимации (4.2 сек) */
     await new Promise(r => setTimeout(r, 4200));
 
     const diceValue = diceMsg.dice.value;
 
-    /* Загружаем юзера заново (мог измениться) */
+    /* Перечитываем юзера (мог измениться) */
     const freshUser = getUser(msg.from);
     const result = Casino.handleDiceResult(freshUser, prep.bet, diceValue);
 
     const unlocked = Ach.checkAchievements(freshUser);
     sync(freshUser);
 
-    /* Формируем результат — БЕЗ строки "Выпало" */
+    /* Формируем сообщение */
     let text = `🎰 <b>Однорукий бандит</b>\n\n`;
-    text += `🎯 Ставка: <b>${G.fmt(prep.bet)}</b>\n\n`;
+    text += `🎯 Ставка: <b>${G.fmt(prep.bet)}</b>\n`;
+    text += `🎲 Выпало: <b>${Casino.renderReels(result.reels)}</b>\n\n`;
 
     if (result.win) {
       if (result.jackpot) {
         text += `🎉🎉🎉 <b>ДЖЕКПОТ!</b> (×10)\n`;
       } else if (result.multiplier >= 5) {
-        text += `🎉 <b>Крупный выигрыш!</b> (×${result.multiplier})\n`;
-      } else if (result.multiplier >= 3) {
-        text += `✨ <b>Отлично!</b> (×${result.multiplier})\n`;
+        text += `🏆 <b>${result.label}</b>\n`;
       } else {
-        text += `💫 <b>Пара!</b> (×${result.multiplier})\n`;
+        text += `✨ <b>${result.label}</b> (×${result.multiplier})\n`;
       }
       text += `💰 <b>+${G.fmt(result.gain)} SC</b>`;
     } else {
@@ -248,7 +271,7 @@ bot.onText(/^\/(рулетка|слоты|slot|spin)(?:\s+(\d+))?$/i, async (msg
 
   } catch (e) {
     console.error('Casino error:', e);
-    /* Возвращаем ставку */
+    /* Возвращаем ставку при ошибке */
     const freshUser = getUser(msg.from);
     freshUser.money += prep.bet;
     sync(freshUser);
@@ -300,7 +323,10 @@ bot.onText(/^\/(достижения|ачивки|achievements)/i, (msg) => {
 
 /* ============ /топ ============ */
 bot.onText(/^\/топ/i, (msg) => {
-  const users = DB.getAllUsers().sort((a, b) => (b.money || 0) - (a.money || 0)).slice(0, 10);
+  const users = DB.getAllUsers()
+    .sort((a, b) => (b.money || 0) - (a.money || 0))
+    .slice(0, 10);
+
   if (!users.length) return bot.sendMessage(msg.chat.id, '📊 Пусто');
 
   const lines = users.map((u, i) => {
@@ -308,7 +334,10 @@ bot.onText(/^\/топ/i, (msg) => {
     return `${m} <b>${u.firstName || 'Аноним'}</b> — ${G.fmt(u.money)}`;
   });
 
-  bot.sendMessage(msg.chat.id, `🏆 <b>Топ</b>\n\n${lines.join('\n')}`, { parse_mode: 'HTML' });
+  bot.sendMessage(msg.chat.id,
+    `🏆 <b>Топ</b>\n\n${lines.join('\n')}`,
+    { parse_mode: 'HTML' }
+  );
 });
 
 /* ============ /профиль ============ */
@@ -331,7 +360,8 @@ bot.onText(/^\/(профиль|profile|я|me)/i, (msg) => {
     `🏢 ${bizCount}/${G.BUSINESSES.length}\n` +
     `🏆 ${achCount}/${Ach.ACHIEVEMENTS.length}\n` +
     `🔥 Серия: ${daily.streak} дн.\n` +
-    `🎰 Спинов: ${stats.spins || 0}`,
+    `🎰 Спинов: ${stats.spins || 0}\n` +
+    `💎 Джекпотов: ${stats.jackpots || 0}`,
     { parse_mode: 'HTML' }
   );
 });
@@ -372,8 +402,11 @@ bot.onText(/^\/стата/i, (msg) => {
 
 /* ============ Ошибки ============ */
 bot.on('polling_error', (err) => {
-  if (err.message.includes('409')) console.warn('⚠️ 409');
-  else console.error('⚠️', err.message);
+  if (err.message.includes('409')) {
+    console.warn('⚠️ 409 конфликт');
+  } else {
+    console.error('⚠️', err.message);
+  }
 });
 
 process.on('SIGINT', () => {
