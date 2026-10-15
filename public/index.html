@@ -28,6 +28,15 @@
       </header>
 
       <div class="home-sections">
+        <div class="menu-item" data-nav="job">
+          <div class="menu-item-icon" style="background: linear-gradient(135deg, #7c3aed, #a855f7);">💼</div>
+          <div class="menu-item-info">
+            <div class="menu-item-title">Работа</div>
+            <div class="menu-item-sub" id="jobSubInfo">Устройся и зарабатывай</div-sub>
+          </div>
+          <div class="menu-item-arrow">›</div>
+        </div>
+
         <div class="menu-item" data-nav="businesses">
           <div class="menu-item-icon" style="background: linear-gradient(135deg, #1e40af, #3b82f6);">🏢</div>
           <div class="menu-item-info">
@@ -41,7 +50,7 @@
           <div class="menu-item-icon" style="background: linear-gradient(135deg, #b45309, #f59e0b);">🎰</div>
           <div class="menu-item-info">
             <div class="menu-item-title">Казино</div>
-            <div class="menu-item-sub">Испытай удачу в слотах</div>
+            <div class="menu-item">Испытай удачу в слотах</div>
           </div>
           <div class="menu-item-arrow">›</div>
         </div>
@@ -64,6 +73,28 @@
         </div>
         <button class="btn-daily" id="dailyBtn">Забрать</button>
       </div>
+    </section>
+
+    <!-- ═══════ ЭКРАН: РАБОТА ═══════ -->
+    <section class="screen" data-screen="job">
+      <div class="screen-header">
+        <div class="screen-title">РАБОТА</div>
+        <div class="screen-balance" id="jobLevel">Lv 1</div>
+      </div>
+
+      <!-- Энергия -->
+      <div class="energy-block">
+        <div class="energy-head">
+          <span>⚡ Энергия</span>
+          <span id="jobEnergyText">100 / 100</span>
+        </div>
+        <div class="energy-bar">
+          <div class="energy-fill" id="jobEnergyFill" style="width:100%"></div>
+        </div>
+      </div>
+
+      <!-- Контент: текущая работа или список вакансий -->
+      <div id="jobContent"></div>
     </section>
 
     <!-- ═══════ ЭКРАН 2: МАГАЗИН ═══════ -->
