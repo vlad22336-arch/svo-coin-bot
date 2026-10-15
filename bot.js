@@ -5,6 +5,7 @@ import * as G from './game.js';
 import * as Daily from './daily.js';
 import * as Ach from './achievements.js';
 import * as Casino from './casino.js';
+import * as Jobs from './jobs.js';
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const WEBAPP_URL = process.env.WEBAPP_URL;
@@ -54,7 +55,6 @@ bot.onText(/^\/start/, (msg) => {
   const user = getUser(msg.from);
   sync(user);
 
-  /* Кнопка Mini App */
   const keyboard = WEBAPP_URL
     ? {
         reply_markup: {
@@ -71,6 +71,7 @@ bot.onText(/^\/start/, (msg) => {
     `<b>Что внутри:</b>\n` +
     `💰 Пассивный доход\n` +
     `🏢 20 бизнесов\n` +
+    `💼 9 профессий\n` +
     `🎰 Казино\n` +
     `🎁 Ежедневки\n` +
     `🏆 Достижения\n\n` +
@@ -283,6 +284,129 @@ bot.onText(/^\/(рулетка|слоты|slot|spin)(?:\s+(\d+))?$/i, async (msg
   }
 });
 
+/* =========================================================
+   💼 РАБОТА
+   ========================================================= */
+
+/* /работа */
+bot.onText(/^\/(работа|jobs|job)/i, (msg) => {
+  const user = getUser(msg.from);
+  const status = Jobs.serializeJobs(user);
+  sync(user);
+
+  const level = status.level;
+
+  if (status.currentJob) {
+    const j = status.currentJob;
+    const canWork = j.cooldownLeft === 0 && status.energy.current >= j.energyCost;
+
+    let text = `${j.emoji} <b>${j.name}</b>\n\n`;
+    text += `💰 Зарплата: <b>${G.fmt(j.salaryPerHour)}/час</b>\n`;
+    text += `📊 Смен: <b>${j.shiftsDone}</b>\n`;
+    text += `💎 Всего заработано: <b>${G.fmt(j.totalEarned)}</b>\n\n`;
+    text += `⚡ Энергия: <b>${status.energy.current}/${status.energy.max}</b>\n`;
+    text += `⭐ Уровень: <b>${level.level}</b>\n\n`;
+
+    if (canWork) {
+      text += `✅ Готовы к смене! Пишите: <code>смена</code>`;
+    } else if (j.cooldownLeft > 0) {
+      text += `⏰ Отдых ещё <b>${j.cooldownLeft} мин.</b>`;
+    } else {
+      text += `⚡ Нужно минимум <b>${j.energyCost}</b> энергии`;
+    }
+
+    return bot.sendMessage(msg.chat.id, text, { parse_mode: 'HTML' });
+  }
+
+  const availableJobs = status.availableJobs.filter(j => j.available);
+
+  let text = `💼 <b>Вы нигде не работаете</b>\n\n`;
+  text += `⭐ Уровень: <b>${level.level}</b> · До след: <b>${G.fmt(level.toNext)}</b>\n\n`;
+
+  if (availableJobs.length) {
+    text += `<b>Доступные вакансии:</b>\n`;
+    availableJobs.slice(0, 5).forEach(j => {
+      text += `${j.emoji} <b>${j.name}</b> — ${G.fmt(j.salaryPerHour)}/ч\n`;
+      text += `   <i>/устроиться ${j.id}</i>\n`;
+    });
+  }
+
+  text += `\n📋 Все вакансии: <code>вакансии</code>`;
+
+  bot.sendMessage(msg.chat.id, text, { parse_mode: 'HTML' });
+});
+
+/* Вакансии */
+bot.onText(/^вакансии/i, (msg) => {
+  const user = getUser(msg.from);
+  sync(user);
+
+  const status = Jobs.serializeJobs(user);
+
+  const lines = status.availableJobs.map(j => {
+    const lock = j.available ? '' : ' 🔒';
+    return (
+      `${j.emoji} <b>${j.name}</b>${lock}\n` +
+      `💰 ${G.fmt(j.salaryPerHour)}/ч · Lv ${j.minLevel}+\n` +
+      `⚡ ${j.energyCost} энергии · кулдаун ${j.workCooldownMin} мин\n` +
+      (j.available ? `   <i>/устроиться ${j.id}</i>` : '')
+    );
+  }).join('\n\n');
+
+  bot.sendMessage(msg.chat.id,
+    `💼 <b>Все вакансии</b>\n\n${lines}`,
+    { parse_mode: 'HTML' }
+  );
+});
+
+/* Устроиться */
+bot.onText(/^\/?устроиться\s+(\w+)$/i, (msg, match) => {
+  const user = getUser(msg.from);
+  const r = Jobs.applyForJob(user, match[1]);
+  sync(user);
+
+  if (!r.ok) return bot.sendMessage(msg.chat.id, `❌ ${r.msg}`);
+
+  bot.sendMessage(msg.chat.id,
+    `✅ <b>Вы устроены!</b>\n\n` +
+    `${r.job.emoji} <b>${r.job.name}</b>\n` +
+    `💰 Зарплата: <b>${G.fmt(r.job.salaryPerHour)}/час</b>\n\n` +
+    `Напишите <code>смена</code> чтобы начать работу`,
+    { parse_mode: 'HTML' }
+  );
+});
+
+/* Смена */
+bot.onText(/^(смена|работать)$/i, (msg) => {
+  const user = getUser(msg.from);
+  const r = Jobs.workShift(user);
+  sync(user);
+
+  if (!r.ok) return bot.sendMessage(msg.chat.id, `❌ ${r.msg}`);
+
+  let text = `✅ <b>Смена окончена!</b>\n\n`;
+  text += `💰 Заработано: <b>+${G.fmt(r.salary, { full: true })}</b>\n`;
+
+  if (r.multiplier > 1) {
+    text += `🎉 Бонус ×${r.multiplier}!\n`;
+  }
+
+  text += `\n💰 Баланс: <b>${G.fmt(user.money)}</b>\n`;
+  text += `⚡ Энергия: <b>${user.energy}/${Jobs.MAX_ENERGY}</b>`;
+
+  bot.sendMessage(msg.chat.id, text, { parse_mode: 'HTML' });
+});
+
+/* Уволиться */
+bot.onText(/^уволиться$/i, (msg) => {
+  const user = getUser(msg.from);
+  const r = Jobs.quitJob(user);
+  sync(user);
+
+  if (!r.ok) return bot.sendMessage(msg.chat.id, `❌ ${r.msg}`);
+  bot.sendMessage(msg.chat.id, `✅ ${r.msg}`);
+});
+
 /* ============ /бонус ============ */
 bot.onText(/^\/(бонус|ежедневка|daily|bonus)/i, (msg) => {
   const user = getUser(msg.from);
@@ -355,17 +479,19 @@ bot.onText(/^\/(профиль|profile|я|me)/i, (msg) => {
   const achCount = Object.keys(user.achievements).length;
   const daily = Daily.getDailyInfo(user);
   const stats = user.stats || {};
+  const jobStatus = Jobs.serializeJobs(user);
+  const level = jobStatus.level;
 
   bot.sendMessage(msg.chat.id,
     `👤 <b>${msg.from.first_name}</b>\n` +
     (msg.from.username ? `@${msg.from.username}\n` : '') +
-    `\n💰 <b>${G.fmt(user.money, { full: true })}</b>\n` +
+    `\n⭐ Уровень: <b>${level.level}</b>\n` +
+    `💰 <b>${G.fmt(user.money, { full: true })}</b>\n` +
     `📈 ${G.fmt(income)}/сек\n` +
     `🏢 ${bizCount}/${G.BUSINESSES.length}\n` +
     `🏆 ${achCount}/${Ach.ACHIEVEMENTS.length}\n` +
-    `🔥 Серия: ${daily.streak} дн.\n` +
-    `🎰 Спинов: ${stats.spins || 0}\n` +
-    `💎 Джекпотов: ${stats.jackpots || 0}`,
+    (jobStatus.currentJob ? `💼 ${jobStatus.currentJob.emoji} ${jobStatus.currentJob.name}\n` : '') +
+    `🔥 Серия: ${daily.streak} дн.`,
     { parse_mode: 'HTML' }
   );
 });
@@ -374,16 +500,16 @@ bot.onText(/^\/(профиль|profile|я|me)/i, (msg) => {
 bot.onText(/^\/(помощь|help|хелп)/i, (msg) => {
   bot.sendMessage(msg.chat.id,
     `📖 <b>Команды SVOcoin</b>\n\n` +
-    `💰 /баланс\n` +
-    `🛒 /магазин\n` +
-    `🏢 /бизнесы\n` +
-    `⬆️ /апгрейд <id>\n` +
-    `💸 /продать <id>\n` +
-    `🎰 /рулетка <ставка>\n` +
-    `🎁 /бонус\n` +
-    `🏆 /достижения\n` +
-    `📊 /топ\n` +
-    `👤 /профиль`,
+    `<b>💰 Экономика</b>\n` +
+    `/баланс\n` +
+    `/магазин · /купить · /апгрейд · /продать\n\n` +
+    `<b>💼 Работа</b>\n` +
+    `/работа · вакансии · /устроиться · смена · уволиться\n\n` +
+    `<b>🎮 Игры</b>\n` +
+    `/рулетка <ставка>\n` +
+    `/бонус · /достижения\n\n` +
+    `<b>📊 Прочее</b>\n` +
+    `/топ · /профиль`,
     { parse_mode: 'HTML' }
   );
 });
