@@ -1,0 +1,363 @@
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+:root {
+  --bg: #0f1115;
+  --card: #1c2029;
+  --card-2: #232833;
+  --accent: #6d5efc;
+  --accent-2: #8a7dff;
+  --green: #3ddc84;
+  --gold: #ffd54a;
+  --red: #ff5c5c;
+  --text: #eef1f7;
+  --muted: #8b93a7;
+  --radius: 16px;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+#app {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 14px;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom));
+}
+
+/* ============ TOPBAR ============ */
+.topbar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.stat-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,0.04);
+}
+
+.stat-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.balance-card .stat-value { color: var(--accent-2); }
+.income-card .stat-value { color: var(--green); font-size: 17px; }
+.stat-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+/* ============ DAILY ============ */
+.daily-block {
+  background: linear-gradient(135deg, rgba(255, 213, 74, 0.15), rgba(255, 213, 74, 0.03));
+  border: 1px solid rgba(255, 213, 74, 0.3);
+  border-radius: var(--radius);
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.daily-info { flex: 1; display: flex; align-items: center; gap: 12px; }
+.daily-icon { font-size: 28px; }
+.daily-title { font-size: 14px; font-weight: 700; }
+.daily-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+.btn-daily {
+  background: linear-gradient(135deg, #d97706, var(--gold));
+  color: #1a1a1a;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(255, 213, 74, 0.4);
+  font-family: inherit;
+}
+
+.btn-daily:active { transform: scale(0.96); }
+
+/* ============ BUSINESS LIST ============ */
+.business-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+
+.biz {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 0.2s;
+}
+
+.biz.owned {
+  border-color: rgba(109, 94, 252, 0.25);
+}
+
+.biz.locked {
+  opacity: 0.55;
+}
+
+.biz-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.biz-emoji {
+  font-size: 28px;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  background: var(--card-2);
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.biz-info { flex: 1; min-width: 0; }
+.biz-name { font-size: 15px; font-weight: 700; }
+.biz-sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+.biz-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: rgba(109, 94, 252, 0.15);
+  color: var(--accent-2);
+  white-space: nowrap;
+}
+
+.biz-badge.max { background: rgba(61, 220, 132, 0.15); color: var(--green); }
+.biz-badge.locked-badge { background: rgba(255,255,255,0.05); color: var(--muted); }
+
+/* Прогресс */
+.biz-progress {
+  height: 6px;
+  background: var(--card-2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.biz-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  border-radius: 4px;
+  transition: width 0.4s;
+}
+
+.biz-progress-fill.max {
+  background: linear-gradient(90deg, #16a34a, var(--green));
+}
+
+/* Стата бизнеса */
+.biz-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.biz-stat {
+  background: var(--card-2);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.biz-stat-label {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 3px;
+  font-weight: 600;
+}
+
+.biz-stat-value {
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Кнопки */
+.biz-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.biz-actions.single { grid-template-columns: 1fr; }
+
+.btn {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 10px;
+  cursor: pointer;
+  color: #fff;
+  transition: transform 0.12s, opacity 0.2s;
+  letter-spacing: 0.02em;
+}
+
+.btn:active:not(:disabled) { transform: scale(0.97); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-buy {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+}
+
+.btn-upgrade {
+  background: linear-gradient(135deg, #16a34a, var(--green));
+}
+
+.btn-sell {
+  background: linear-gradient(135deg, #991b1b, var(--red));
+}
+
+.btn-locked {
+  background: var(--card-2);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+/* ============ SECTIONS ============ */
+.section { margin-top: 20px; }
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.section-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  background: var(--card);
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+/* Достижения */
+.achievements-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.ach-item {
+  aspect-ratio: 1;
+  background: var(--card);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 4px;
+  transition: all 0.2s;
+}
+
+.ach-item.locked { filter: grayscale(1); opacity: 0.35; }
+
+.ach-item.unlocked {
+  background: linear-gradient(135deg, rgba(255, 213, 74, 0.15), rgba(255, 213, 74, 0.03));
+  border-color: rgba(255, 213, 74, 0.4);
+}
+
+.ach-emoji { font-size: 24px; }
+.ach-title {
+  font-size: 9px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.ach-item.unlocked .ach-title { color: var(--gold); }
+
+/* ============ TOAST ============ */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 30px;
+  transform: translate(-50%, 60px);
+  background: var(--card-2);
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s;
+  z-index: 100;
+  max-width: 88vw;
+  text-align: center;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+}
+
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast.success { background: linear-gradient(135deg, #15803d, var(--green)); }
+.toast.error { background: linear-gradient(135deg, #991b1b, var(--red)); }
+
+/* ============ LOADING ============ */
+.loading {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  z-index: 200;
+  transition: opacity 0.4s;
+}
+
+.loading.hide { opacity: 0; pointer-events: none; }
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--card-2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Плавный локальный тик */
+.biz-progress-fill, .stat-value { transition: all 0.3s; }
