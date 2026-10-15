@@ -1,4 +1,6 @@
-/* Tycoon Mini App */
+/* =========================================================
+   SVOcoin Mini App — логика
+   ========================================================= */
 
 const tg = window.Telegram?.WebApp;
 const initData = tg?.initData || '';
@@ -12,6 +14,13 @@ const State = {
   businesses: [],
   daily: null,
   achievements: [],
+  profile: {
+    name: '',
+    age: null,
+    city: '',
+    bio: '',
+  },
+  activeScreen: 'home',
   lastLocalTick: Date.now(),
 };
 
@@ -32,6 +41,22 @@ function fmt(n) {
     }
   }
   return sign + Math.floor(abs) + ' SC';
+}
+
+function fmtBig(n) {
+  /* Для отображения без "SC" (для блока баланса) */
+  if (n < 1000) return Math.floor(n).toString();
+  const units = [
+    { v: 1e15, s: 'Q' }, { v: 1e12, s: 'T' },
+    { v: 1e9,  s: 'B' }, { v: 1e6,  s: 'M' }, { v: 1e3, s: 'K' },
+  ];
+  for (const u of units) {
+    if (n >= u.v) {
+      const val = n / u.v;
+      return (val >= 100 ? val.toFixed(0) : val.toFixed(2)) + u.s;
+    }
+  }
+  return Math.floor(n).toString();
 }
 
 /* ============ API ============ */
@@ -56,14 +81,160 @@ function toast(msg, type = '') {
   el.textContent = msg;
   el.className = 'toast show ' + type;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.className = 'toast ' + type, 2200);
+  toastTimer = setTimeout(() => el.className = 'toast ' + type, 2400);
 }
+
+/* ============ Навигация ============ */
+function showScreen(name) {
+  State.activeScreen = name;
+
+  /* Скрываем все экраны, показываем активный */
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.toggle('active', s.dataset.screen === name);
+  });
+
+  /* Нижние табы */
+  document.querySelectorAll('.nav-item').forEach(n => {
+    n.classList.toggle('active', n.dataset.nav === name);
+  });
+
+  /* Скролл вверх */
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* Обработчики нижних табов */
+document.querySelectorAll('.nav-item').forEach(btn => {
+  btn.onclick = () => showScreen(btn.dataset.nav);
+});
+
+/* Обработчики разделов на главном (Бизнесы, Казино, Достижения) */
+document.querySelectorAll('[data-nav]').forEach(el => {
+  if (el.classList.contains('nav-item')) return;
+  el.onclick = () => {
+    const nav = el.dataset.nav;
+    if (nav === 'businesses') showScreen('shop');
+    else if (nav === 'casino') toast('🎰 Казино — используй команду /рулетка в боте', '');
+    else if (nav === 'achievements') toast('🏆 Достижения — в разработке', '');
+  };
+});
+
+/* ============ Профиль ============ */
+function renderProfile() {
+  const user = tg?.initDataUnsafe?.user;
+
+  /* Имя из Telegram */
+  const tgName = user
+    ? (user.first_name + (user.last_name ? ' ' + user.last_name : '')).toUpperCase()
+    : 'ИГРОК';
+
+  document.getElementById('profileName').textContent = tgName;
+
+  const username = user?.username ? '@' + user.username : 'ID ' + (user?.id || '—');
+  document.getElementById('profileUsername').textContent = username;
+
+  /* Аватар */
+  const avatarImg = document.getElementById('profileAvatar');
+  const avatarInitial = document.getElementById('profileInitial');
+
+  if (user?.photo_url) {
+    avatarImg.src = user.photo_url;
+    avatarImg.style.display = 'block';
+    avatarInitial.style.display = 'none';
+  } else {
+    avatarImg.style.display = 'none';
+    avatarInitial.style.display = 'grid';
+    avatarInitial.textContent = (user?.first_name || 'U')[0].toUpperCase();
+  }
+
+  /* О СЕБЕ */
+  const p = State.profile;
+  document.getElementById('infoName').textContent = p.name || '—';
+  document.getElementById('infoAge').textContent = p.age || '—';
+  document.getElementById('infoCity').textContent = p.city || '—';
+
+  const bioField = document.getElementById('bioField');
+  if (p.bio) {
+    bioField.textContent = p.bio;
+    bioField.style.color = 'var(--text-soft)';
+    bioField.style.fontStyle = 'normal';
+  } else {
+    bioField.textContent = 'Расскажи о себе...';
+    bioField.style.color = 'var(--muted)';
+    bioField.style.fontStyle = 'italic';
+  }
+}
+
+/* Открытие модалки редактирования */
+document.getElementById('editProfileBtn').onclick = () => {
+  document.getElementById('editName').value = State.profile.name || '';
+  document.getElementById('editAge').value = State.profile.age || '';
+  document.getElementById('editCity').value = State.profile.city || '';
+  document.getElementById('editBio').value = State.profile.bio || '';
+
+  document.getElementById('editModal').classList.add('open');
+};
+
+/* Закрытие модалки */
+document.querySelectorAll('[data-close]').forEach(el => {
+  el.onclick = () => document.getElementById('editModal').classList.remove('open');
+});
+
+/* Сохранение профиля */
+document.getElementById('saveProfile').onclick = async () => {
+  const btn = document.getElementById('saveProfile');
+  btn.disabled = true;
+  btn.textContent = '⏳ Сохранение...';
+
+  const patch = {
+    name: document.getElementById('editName').value.trim(),
+    age: Number(document.getElementById('editAge').value) || null,
+    city: document.getElementById('editCity').value.trim(),
+    bio: document.getElementById('editBio').value.trim(),
+  };
+
+  if (!patch.name) {
+    toast('Введите имя', 'error');
+    btn.disabled = false;
+    btn.textContent = '💾 Сохранить';
+    return;
+  }
+
+  try {
+    const r = await api('/api/profile/save', 'POST', patch);
+
+    if (r.ok) {
+      State.profile = r.profile || patch;
+      renderProfile();
+      document.getElementById('editModal').classList.remove('open');
+      toast('✅ Профиль сохранён', 'success');
+
+      if (tg?.HapticFeedback) {
+        tg.HapticFeedback.notificationOccurred('success');
+      }
+    } else {
+      toast(r.msg || 'Ошибка', 'error');
+    }
+  } catch (e) {
+    console.error(e);
+    toast('Ошибка соединения', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '💾 Сохранить';
+  }
+};
 
 /* ============ Render ============ */
 function render() {
-  document.getElementById('balance').textContent = fmt(State.money);
-  document.getElementById('income').textContent = fmt(State.incomePerSec) + '/сек';
-  document.getElementById('incomeHour').textContent = fmt(State.incomePerHour) + '/час';
+  /* ДОМ: баланс */
+  document.getElementById('homeBalance').textContent = fmtBig(State.money);
+  document.getElementById('homeIncome').textContent = fmt(State.incomePerSec) + '/сек';
+  document.getElementById('homeIncomeHour').textContent = fmt(State.incomePerHour) + '/час';
+
+  /* МАГАЗИН: баланс */
+  document.getElementById('shopBalance').textContent = fmt(State.money);
+
+  /* СЕМЬИ: баланс */
+  document.getElementById('familyBalance').textContent = fmtBig(State.money);
 
   /* Ежедневка */
   const dailyBlock = document.getElementById('dailyBlock');
@@ -75,8 +246,19 @@ function render() {
     dailyBlock.style.display = 'none';
   }
 
+  /* Достижения — счётчик */
+  const achUnlocked = State.achievements.filter(a => a.unlocked).length;
+  document.getElementById('achSub').textContent =
+    `${achUnlocked} из ${State.achievements.length || 8} получено`;
+
   /* Список бизнесов */
+  renderBusinesses();
+}
+
+function renderBusinesses() {
   const list = document.getElementById('businessList');
+  if (!list) return;
+
   list.innerHTML = '';
 
   State.businesses.forEach(b => {
@@ -170,23 +352,6 @@ function render() {
     card.appendChild(actions);
     list.appendChild(card);
   });
-
-  /* Достижения */
-  const achGrid = document.getElementById('achievementsGrid');
-  const unlocked = State.achievements.filter(a => a.unlocked).length;
-  document.getElementById('achCount').textContent = `${unlocked} / ${State.achievements.length}`;
-
-  achGrid.innerHTML = '';
-  State.achievements.forEach(a => {
-    const el = document.createElement('div');
-    el.className = 'ach-item ' + (a.unlocked ? 'unlocked' : 'locked');
-    el.innerHTML = `
-      <div class="ach-emoji">${a.emoji}</div>
-      <div class="ach-title">${a.title}</div>
-    `;
-    el.onclick = () => toast(`${a.emoji} ${a.title}\n${a.desc}`, a.unlocked ? 'success' : '');
-    achGrid.appendChild(el);
-  });
 }
 
 /* ============ Действия ============ */
@@ -199,18 +364,21 @@ async function action(promise) {
     }
     if (r.state) applyState(r.state);
     if (r.daily) State.daily = r.daily;
-    if (r.achievements) State.achievements = r.achievements;
 
-    /* Показ новых достижений */
+    render();
+
+    /* Новые достижения */
     if (r.achievementsUnlocked?.length) {
       r.achievementsUnlocked.forEach((a, i) => {
         setTimeout(() => toast(`🏆 ${a.emoji} ${a.title}`, 'success'), i * 500);
       });
     }
 
-    render();
-
     if (r.msg) toast(r.msg, 'success');
+
+    if (tg?.HapticFeedback) {
+      tg.HapticFeedback.notificationOccurred('success');
+    }
   } catch (e) {
     console.error(e);
     toast('Ошибка соединения', 'error');
@@ -227,7 +395,12 @@ function applyState(s) {
   State.lastLocalTick = Date.now();
 }
 
-/* ============ Локальный тик баланса ============ */
+/* ============ Ежедневка ============ */
+document.getElementById('dailyBtn').onclick = () => {
+  action(api('/api/daily/claim', 'POST'));
+};
+
+/* ============ Локальный тик ============ */
 function localTick() {
   const now = Date.now();
   const dt = (now - State.lastLocalTick) / 1000;
@@ -238,18 +411,13 @@ function localTick() {
   }
 }
 
-/* ============ Ежедневка ============ */
-document.getElementById('dailyBtn').onclick = () => {
-  action(api('/api/daily/claim', 'POST'));
-};
-
 /* ============ Инициализация ============ */
 async function init() {
   if (tg) {
     tg.ready();
     tg.expand();
-    if (tg.setHeaderColor) tg.setHeaderColor('#0f1115');
-    if (tg.setBackgroundColor) tg.setBackgroundColor('#0f1115');
+    if (tg.setHeaderColor) tg.setHeaderColor('#0a0c12');
+    if (tg.setBackgroundColor) tg.setBackgroundColor('#0a0c12');
     if (tg.enableClosingConfirmation) tg.enableClosingConfirmation();
   }
 
@@ -262,18 +430,21 @@ async function init() {
     State.incomePerHour = data.incomePerHour;
     State.businesses = data.businesses;
     State.daily = data.daily;
-    State.achievements = data.achievements;
+    State.achievements = data.achievements || [];
+    State.profile = data.profile || { name: '', age: null, city: '', bio: '' };
     State.lastLocalTick = Date.now();
 
+    renderProfile();
     render();
+
     document.getElementById('loading').classList.add('hide');
 
-    /* Показать оффлайн-доход */
+    /* Оффлайн-доход */
     if (data.offlineEarned > 0) {
-      setTimeout(() => toast(`Пока вас не было: +${fmt(data.offlineEarned)}`, 'success'), 800);
+      setTimeout(() => toast(`💤 Пока вас не было: +${fmt(data.offlineEarned)}`, 'success'), 800);
     }
 
-    /* Показать новые достижения */
+    /* Новые достижения */
     if (data.achievementsUnlocked?.length) {
       data.achievementsUnlocked.forEach((a, i) => {
         setTimeout(() => toast(`🏆 ${a.emoji} ${a.title}`, 'success'), 1500 + i * 500);
@@ -285,7 +456,7 @@ async function init() {
     toast('Ошибка загрузки', 'error');
   }
 
-  /* Локальный тик */
+  /* Локальный тик + рендер */
   setInterval(localTick, 500);
   setInterval(render, 1000);
 }
